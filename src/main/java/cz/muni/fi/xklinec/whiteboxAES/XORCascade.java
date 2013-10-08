@@ -4,6 +4,8 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES;
 
+import java.io.Serializable;
+
 /**
  * Implements basic XOR cascade 4x32 bit -> 32 bit.
  * 
@@ -18,14 +20,18 @@ package cz.muni.fi.xklinec.whiteboxAES;
  * 
  * @author ph4r05
  */
-public class XORCascade {
+public class XORCascade implements Serializable{
     public static final int L=0;
     public static final int R=1;
     public static final int C=2;
+    
+    public static final int WIDTH = 4;
+    public static final int BOXES = WIDTH-1;
+    
     private XORBox[] x = null;
 
     public XORCascade() {
-        x = new XORBox[3];
+        x = new XORBox[BOXES];
     }
     
     public XORCascade(XORBox[] xtbl) {
@@ -41,11 +47,25 @@ public class XORCascade {
      * @return 
      */
     public long xor(long a, long b, long c, long d){
+        return xor(x, a, b, c, d);
+    }
+    
+    /**
+     * Returns: (a XOR b) XOR (c XOR d)
+     * Uses provided XOR table.
+     * 
+     * @param a
+     * @param b
+     * @param c
+     * @param d
+     * @return 
+     */
+    public static long xor(final XORBox[] x, long a, long b, long c, long d){
         return x[C].xor(x[L].xor(a, b), x[R].xor(c, d));
     }
     
     /**
-     * Sets sub XORBoxes
+     * Sets sub XORBoxes, no copy, just assignment
      * @param xtbl 
      */
     public final void setXor(XORBox[] xtbl){
@@ -53,7 +73,7 @@ public class XORCascade {
     }
     
     /**
-     * Sets one of three XORBoxes
+     * Sets one of three XORBoxes, no copy, just assignment
      * @param xtbl
      * @param idx 
      */

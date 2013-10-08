@@ -7,11 +7,11 @@ package cz.muni.fi.xklinec.whiteboxAES;
 import java.io.Serializable;
 
 /**
- * T3 box for whitebox AES implementation.
+ * T2 box for whitebox AES implementation.
  * Implements 8 -> 32 bit lookup table
  * 
  * @author ph4r05
  */
-public class T3Box extends TBox8to32 implements Serializable{
+public class T2Box extends TBox8to32 implements Serializable{
     
 }

@@ -4,6 +4,7 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
@@ -16,7 +17,7 @@ import java.util.Arrays;
  * 
  * @author ph4r05
  */
-public class XORBox {
+public class XORBox implements Serializable{
     public static final int WIDTH = 4;
     public static final int BOXES = WIDTH*2;    // input size of 1 box is 4 bits
     
@@ -47,12 +48,51 @@ public class XORBox {
      * @return 
      */
     public long xor(long a, long b){
+        return xor(xor, a, b);
+    }
+    
+    /**
+     * Performs XOR on two 32 bit operands a,b. Uses provided XOR table.
+     * @param a
+     * @param b
+     * @return 
+     */
+    public static long xor(final byte[][] xor, long a, long b){
         long result = 0;
         for (int i=0; i<BOXES; i++){
             result |= ((long)(xor[i][ (int) ((((a >> (i*4)) & 0xF) << 4) | (b >> (i*4)) & 0xF) ])) << (i*4);
         }
         
         return result;
+    }
+    
+    /**
+     * Performs XOR on two 32 bit operands a,b, result is put to a.
+     * @param a
+     * @param b
+     * @return 
+     */
+    public byte[] xorA(byte[] a, byte[] b){
+        return xorA(xor, a, b);
+    }
+    
+    /**
+     * Performs XOR on two 32 bit operands a,b, result is put to a.
+     * Uses provided XOR table.
+     * 
+     * @param a
+     * @param b
+     * @return 
+     */
+    public static byte[] xorA(final byte[][] xor, byte[] a, byte[] b){
+        for (int i=0; i<WIDTH; i++){
+            a[i] = (byte)( 
+                    (xor[2*i+0][(((a[i] >> 4) & 0xF) << 4) | ((b[i] >> 4) & 0xF)] << 4)
+                  | (xor[2*i+1][(( a[i]       & 0xF) << 4) | ( b[i]       & 0xF)]     ) 
+                   );
+        }
+        
+        return a;
     }
 
     /**

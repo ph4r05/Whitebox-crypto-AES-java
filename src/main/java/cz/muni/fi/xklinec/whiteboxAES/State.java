@@ -4,17 +4,19 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
  * AES-128 State
  * @author ph4r05
  */
-public class State {
+public class State implements Serializable, Copyable{
     public static final int BYTES = 16;
     public static final int ROWS  = 4;
     public static final int COLS  = BYTES / ROWS;
     private byte[] state;
+    private boolean immutable=false;
 
     public State() {
         
@@ -22,6 +24,14 @@ public class State {
 
     public State(byte[] state) {
         this.state = state;
+    }
+    
+    public State(byte[] state, boolean copy) {
+        if (copy){
+            this.state = Arrays.copyOf(state, BYTES);
+        } else {
+            this.state = state;
+        }
     }
     
     /**
@@ -49,6 +59,10 @@ public class State {
         
         if (state == null){
             throw new NullPointerException("State is not initialized");
+        }
+        
+        if (immutable){
+            throw new IllegalAccessError("State is set as immutable, cannot change");
         }
         
         this.state[idx] = b;
@@ -152,6 +166,10 @@ public class State {
      * State initialization - memory allocation
      */
     public final void init(){
+        if (immutable){
+            throw new IllegalAccessError("State is set as immutable, cannot change");
+        }
+        
         state = new byte[BYTES];
     }
     
@@ -163,7 +181,11 @@ public class State {
     }
 
     /**
-     * Whole state getter
+     * Whole state getter.
+     * 
+     * WARNING, if this object is set immutable, it should return copy of an array,
+     * but from performance reasons it is not the case here. 
+     * 
      * @return 
      */
     public byte[] getState() {
@@ -188,10 +210,41 @@ public class State {
             throw new IllegalArgumentException("XOR table has to have 8 sub-tables");
         }
         
+        if (immutable){
+            throw new IllegalAccessError("State is set as immutable, cannot change");
+        }
+        
         if (copy){
             this.state = Arrays.copyOf(state, BYTES);
         } else {
             this.state = state;
         }
     }   
+
+    /**
+     * Deep copy of objects
+     * 
+     * @param src
+     * @param dst 
+     */
+    public static void copy(final State src, State dst){
+        dst.setState(dst.getState(), true);
+    }
+    
+    /**
+     * Returns deep copy of state.
+     * 
+     * @return 
+     */
+    public Copyable copy() {
+        return new State(this.getState(), true);
+    }
+
+    public boolean isImmutable() {
+        return immutable;
+    }
+
+    public void setImmutable(boolean immutable) {
+        this.immutable = immutable;
+    }
 }

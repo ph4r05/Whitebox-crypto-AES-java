@@ -4,6 +4,7 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
@@ -16,7 +17,7 @@ import java.util.Arrays;
  * 
  * @author ph4r05
  */
-public class XORBoxState {
+public class XORBoxState implements Serializable{
     public static final int WIDTH = State.BYTES;
     public static final int BOXES = WIDTH*2;    // input size of 1 box is 4 bits
     
@@ -39,43 +40,41 @@ public class XORBoxState {
     public XORBoxState(final byte[][] xorTbl, boolean copy) {
         setXor(xorTbl, copy);
     }
-    
+        
     /**
      * Performs XOR on two 128 bit operands a,b.
+     * 
      * @param a
      * @param b
      * @return 
      */
     public State xor(State a, State b){
-        return xor(a,b,false);
+        return xor(xor, a, b);
     }
     
     /**
      * Performs XOR on two 128 bit operands a,b.
-     * If putToA == true then result is put to State a to save memory allocations.
+     * Uses provided XOR table.
      * 
+     * @param xor
      * @param a
      * @param b
-     * @param putToA
      * @return 
      */
-    public State xor(State a, State b, boolean putToA){
-        if (putToA) {
-            return xorA(a, b);
-        } else {
-            byte[] s = State.initExt();
-            final byte ar[] = a.getState();
-            final byte br[] = b.getState();
-            for (int i=0; i<WIDTH; i++){
-                s[i] = (byte)( 
-                        (xor[2*i+0][(((ar[i] >> 4) & 0xF) << 4) | ((br[i] >> 4) & 0xF)] << 4)
-                      | (xor[2*i+1][(( ar[i]       & 0xF) << 4) | ( br[i]       & 0xF)]     ) 
-                       );
-            }
-            
-            return new State(s);
+    public static State xor(final byte[][] xor , State a, State b){
+        byte[] s = State.initExt();
+        final byte ar[] = a.getState();
+        final byte br[] = b.getState();
+        for (int i=0; i<WIDTH; i++){
+            s[i] = (byte)( 
+                    (xor[2*i+0][(((ar[i] >> 4) & 0xF) << 4) | ((br[i] >> 4) & 0xF)] << 4)
+                  | (xor[2*i+1][(( ar[i]       & 0xF) << 4) | ( br[i]       & 0xF)]     ) 
+                   );
         }
+
+        return new State(s);
     }
+    
     
     /**
      * Performs XOR on two 128 bit operands a,b while storing result to a.
@@ -84,6 +83,18 @@ public class XORBoxState {
      * @return 
      */
     public State xorA(State a, State b){
+        return xorA(xor, a, b);
+    }
+    
+    /**
+     * Performs XOR on two 128 bit operands a,b while storing result to a.
+     * Uses provided XOR table.
+     * 
+     * @param a
+     * @param b
+     * @return 
+     */
+    public static State xorA(final byte[][] xor, State a, State b){
               byte ar[] = a.getState();
         final byte br[] = b.getState();
         for (int i=0; i<WIDTH; i++){
