@@ -106,4 +106,26 @@ public class TBox8to32 implements Serializable, Copyable{
     public Copyable copy() {
         return new TBox8to32(this.getTbl(), true);
     }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 97 * hash + Arrays.hashCode(this.tbl);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final TBox8to32 other = (TBox8to32) obj;
+        if (!Arrays.equals(this.tbl, other.tbl)) {
+            return false;
+        }
+        return true;
+    }
 }

@@ -161,4 +161,26 @@ public class XORBox implements Serializable{
     public final void init(){
         xor = new byte[BOXES][];
     }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 53 * hash + Arrays.deepHashCode(this.xor);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final XORBox other = (XORBox) obj;
+        if (!Arrays.deepEquals(this.xor, other.xor)) {
+            return false;
+        }
+        return true;
+    }
 }

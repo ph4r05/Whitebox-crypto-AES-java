@@ -5,6 +5,7 @@
 package cz.muni.fi.xklinec.whiteboxAES;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * Lookup table for whitebox AES implementation.
@@ -95,5 +96,27 @@ public class TBox8to128 implements Serializable{
     
     public static State[] initNew() {
         return new State[ROWS];
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 73 * hash + Arrays.deepHashCode(this.tbl);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final TBox8to128 other = (TBox8to128) obj;
+        if (!Arrays.deepEquals(this.tbl, other.tbl)) {
+            return false;
+        }
+        return true;
     }
 }

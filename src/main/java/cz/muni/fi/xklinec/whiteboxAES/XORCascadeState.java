@@ -5,6 +5,7 @@
 package cz.muni.fi.xklinec.whiteboxAES;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * Implements basic XOR cascade 16x128 bit -> 128 bit
@@ -119,5 +120,27 @@ public class XORCascadeState implements Serializable{
         }
         
         x[idx] = xtbl;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 67 * hash + Arrays.deepHashCode(this.x);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final XORCascadeState other = (XORCascadeState) obj;
+        if (!Arrays.deepEquals(this.x, other.x)) {
+            return false;
+        }
+        return true;
     }
 }

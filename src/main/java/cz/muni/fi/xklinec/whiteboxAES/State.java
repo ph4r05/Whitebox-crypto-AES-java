@@ -191,21 +191,33 @@ public class State implements Serializable, Copyable{
     public byte[] getState() {
         return state;
     }
+    
+    /**
+     * Whole state getter. 
+     * Returns copy of internal representation.
+     * 
+     * @return 
+     */
+    public byte[] getStateCopy() {
+        return Arrays.copyOf(state, BYTES);
+    }
 
     /**
      * Whole state setter, copy
      * @param state 
      */
-    public void setState(byte[] state) {
+    public void setState(final byte[] state) {
         this.setState(state, true);
     }
     
     /**
-     * State setter with optional copy
+     * State setter with optional copy.
+     * Copy is done via Arrays.copy, so new memory is allocated.
+     * 
      * @param state
      * @param copy 
      */
-    public void setState(byte[] state, boolean copy) {
+    public void setState(final byte[] state, boolean copy) {
         if (state.length != BYTES) {
             throw new IllegalArgumentException("XOR table has to have 8 sub-tables");
         }
@@ -220,6 +232,18 @@ public class State implements Serializable, Copyable{
             this.state = state;
         }
     }   
+    
+    /**
+     * Loads state data from source to currently allocated memory.
+     * @param src 
+     */
+    public void loadFrom(final State src){
+        if (immutable){
+            throw new IllegalAccessError("State is set as immutable, cannot change");
+        }
+        
+        System.arraycopy(src.getState(), 0, this.state, 0, BYTES);
+    }
 
     /**
      * Deep copy of objects
@@ -246,5 +270,27 @@ public class State implements Serializable, Copyable{
 
     public void setImmutable(boolean immutable) {
         this.immutable = immutable;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 59 * hash + Arrays.hashCode(this.state);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final State other = (State) obj;
+        if (!Arrays.equals(this.state, other.state)) {
+            return false;
+        }
+        return true;
     }
 }
