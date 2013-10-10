@@ -34,33 +34,88 @@ public class AES {
     private XORCascadeState[] xorState = new XORCascadeState[T1BOXES];
     private T2Box[][]         t2       = new T2Box[ROUNDS][State.BYTES];
     private T3Box[][]         t3       = new T3Box[ROUNDS][State.BYTES];
-    private XORCascade[][]    xor      = new XORCascade[ROUNDS][2*State.COLS*ROUNDS];
+    private XORCascade[][]    xor      = new XORCascade[ROUNDS][2*State.COLS];
     private boolean           encrypt  = true;
 
     /**
      * Encryption OR decryption - depends on generated tables
      * @param in 
      */
-    public void crypt(State in){
+    public State crypt(State state){
         int r=0, i=0;
 	W32b  ires[] = new W32b[BYTES];	// intermediate result for T2,T3-boxes
 	State ares[] = new State[BYTES];	// intermediate result for T1-boxes
         
+        // initialize ires, ares at first
+        for(i=0; i<BYTES; i++){
+            ires[i] = new W32b();
+            ares[i] = new State();
+        }
         
         // At first we have to put input to T1 boxes directly, no shift rows
 	// compute result to ares[16]
 	for(i=0; i<BYTES; i++){
             // Note: Tbox is indexed by cols, state by rows - transpose needed here
-            ares[i].loadFrom( t1[0][i].lookup(in.get(i)) );
+            ares[i].loadFrom( t1[0][i].lookup(state.get(i)) );
         }
         
         // now compute XOR cascade from 16 x 128bit result after T1 application.
         xorState[0].xor(ares);
+        state.loadFrom(ares[0]);
         
         // Compute 9 rounds of T2 boxes
-        // TODO: 
+        for(r=0; r<ROUNDS; r++){
+            // Apply type 2 tables to all bytes, counting also shift rows selector.
+            // One section ~ 1 column of state array, so select 1 column, first will
+            // have indexes 0,4,8,12. Also take ShiftRows() into consideration.
+            for(i=0; i<BYTES; i++){
+                ires[i].set(t2[r][i].lookup(state.get(shift(i))));
+            }
+            
+            
+            for(i=0; i<State.COLS; i++){
+                // XOR results for one column from T2 boxes.
+                // After this operation we will have one 32bit ires[] for 1 column
+                ires[i].set(xor[r][2*i].xor(
+                    ires[ 0+i].getLong(), 
+                    ires[ 4+i].getLong(), 
+                    ires[ 8+i].getLong(), 
+                    ires[12+i].getLong()));
+                
+                // Apply T3 boxes, valid XOR results are in ires[0], ires[4], ires[8], ires[12]
+                // Start from the end, because in ires[i] is our XORing result.
+                final byte[] cires = ires[i].get(); 
+                ires[12+i].set(t3[r][12+i].lookup(cires[3]));
+                ires[ 8+i].set(t3[r][ 8+i].lookup(cires[2]));
+                ires[ 4+i].set(t3[r][ 4+i].lookup(cires[1]));
+                ires[ 0+i].set(t3[r][ 0+i].lookup(cires[0]));
+                
+                // Apply final XOR cascade after T3 box
+                ires[i].set(xor[r][2*i+1].xor(
+                    ires[ 0+i].getLong(), 
+                    ires[ 4+i].getLong(), 
+                    ires[ 8+i].getLong(), 
+                    ires[12+i].getLong()));
+                
+                // Copy results back to state,
+                // valid XOR results are in 32bit ires[0], ires[4], ires[8], ires[12]
+                state.setColumn(ires[i], i);
+            }
+        }
         
+        //
+	// Final round is special -> T1 boxes
+	//
+        for(i=0; i<BYTES; i++){
+            // Note: Tbox is indexed by cols, state by rows - transpose needed here
+            ares[i].loadFrom( t1[1][i].lookup(state.get(shift(i))) );
+        }
         
+        // now compute XOR cascade from 16 x 128bit result after T1 application.
+        xorState[1].xor(ares);
+        state.loadFrom(ares[0]);
+        
+        return state;
     }
     
     /**
@@ -71,6 +126,28 @@ public class AES {
      */
     public static int[] getShift(boolean encrypt){
         return encrypt ? shiftRows : shiftRowsInv;
+    }
+    
+    /**
+     * Returns shifted bit 
+     * 
+     * @param idx
+     * @param encrypt
+     * @return 
+     */
+    public static int shift(int idx, boolean encrypt){
+        return getShift(encrypt)[idx];
+    }
+    
+    /**
+     * Returns shifted bit 
+     * 
+     * @param idx
+     * @param encrypt
+     * @return 
+     */
+    public int shift(int idx){
+        return getShift(encrypt)[idx];
     }
 
     @Override

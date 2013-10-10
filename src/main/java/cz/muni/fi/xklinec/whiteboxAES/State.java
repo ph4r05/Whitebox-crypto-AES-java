@@ -163,6 +163,20 @@ public class State implements Serializable, Copyable{
     }
     
     /**
+     * Sets column from 32bit type.
+     * Assumes we have 4 rows (32bit type).
+     * @param col
+     * @param idx 
+     */
+    public void setColumn(W32b col, int idx){
+        final byte[] c = col.get();
+        state[idx+ 0] = c[0];
+        state[idx+ 4] = c[1];
+        state[idx+ 8] = c[2];
+        state[idx+12] = c[3];
+    }
+    
+    /**
      * State initialization - memory allocation
      */
     public final void init(){
