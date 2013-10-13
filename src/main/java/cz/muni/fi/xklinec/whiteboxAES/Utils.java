@@ -9,6 +9,9 @@ package cz.muni.fi.xklinec.whiteboxAES;
  * @author ph4r05
  */
 public class Utils {
+    private static final int    BIG_ENOUGH_INT   = 16 * 1024;
+    private static final double BIG_ENOUGH_FLOOR = BIG_ENOUGH_INT;
+    private static final double BIG_ENOUGH_ROUND = BIG_ENOUGH_INT + 0.5;
     
     /**
      * Binary logarithm
@@ -65,5 +68,25 @@ public class Utils {
         byte[] b = new byte[4];
         long2byte(b, a);
         return b;       
+    }
+    
+     public static int ceil(double x) {
+        return BIG_ENOUGH_INT - (int)(BIG_ENOUGH_FLOOR-x);
+    }
+     
+     public static String toBinaryString(int[] input) {
+        String result = "";
+        int i;
+        for (i = 0; i < input.length; i++) {
+            int e = input[i];
+            for (int ii = 0; ii < 32; ii++) {
+                int b = (e >>> ii) & 1;
+                result += b;
+            }
+            if (i != input.length - 1) {
+                result += " ";
+            }
+        }
+        return result;
     }
 }
