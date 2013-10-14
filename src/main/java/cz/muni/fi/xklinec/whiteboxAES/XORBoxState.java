@@ -23,7 +23,7 @@ public class XORBoxState implements Serializable{
     
     // Main XOR table 
     // represents 8 -> 4 bit XOR tables
-    private byte[][] xor = null;
+    protected byte[][] xor = null;
     
     /**
      * Empty constructor

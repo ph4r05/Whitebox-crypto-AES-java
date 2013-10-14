@@ -15,8 +15,8 @@ public class State implements Serializable, Copyable{
     public static final int BYTES = 16;
     public static final int ROWS  = 4;
     public static final int COLS  = BYTES / ROWS;
-    private byte[] state;
-    private boolean immutable=false;
+    protected byte[] state;
+    protected boolean immutable=false;
 
     public State() {
         

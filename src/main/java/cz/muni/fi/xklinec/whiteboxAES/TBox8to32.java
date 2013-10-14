@@ -21,7 +21,7 @@ public class TBox8to32 implements Serializable, Copyable{
     
     // Main Lookup table
     // represents 1 -> 4 byte mapping
-    private long[] tbl = null;
+    protected long[] tbl = null;
     
     /**
      * Empty constructor

@@ -30,7 +30,7 @@ public class XORCascadeState implements Serializable{
     public static final int WIDTH  = State.BYTES;
     public static final int BOXES  = WIDTH-1;               // input size of 1 box is 4 bits; WIDTH-1 operations needed to XOR N operands.
     public static final int STAGES = Utils.binlog(WIDTH);  // log(WIDTH) / log(2). Number of stages of XORs
-    private XORBoxState[] x = null;
+    protected XORBoxState[] x = null;
 
     public XORCascadeState() {
         x = new XORBoxState[BOXES];

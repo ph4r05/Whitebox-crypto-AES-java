@@ -29,7 +29,7 @@ public class XORCascade implements Serializable{
     public static final int WIDTH = 4;
     public static final int BOXES = WIDTH-1;
     
-    private XORBox[] x = null;
+    protected XORBox[] x = null;
 
     public XORCascade() {
         x = new XORBox[BOXES];

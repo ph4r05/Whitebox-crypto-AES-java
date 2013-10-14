@@ -20,7 +20,7 @@ public class TBox8to128 implements Serializable{
     
     
     // Main lookup table
-    private State tbl[] = null;
+    protected State tbl[] = null;
     
     /**
      * Basic lookup, returns direct result

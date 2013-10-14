@@ -15,7 +15,7 @@ public class W32b implements Serializable, Copyable{
     public static final int WIDTH = 4;
     
     // Internal representation
-    private byte[] b = null;
+    protected byte[] b = null;
 
     public W32b() {
         init();
