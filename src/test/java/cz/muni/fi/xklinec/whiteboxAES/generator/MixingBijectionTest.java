@@ -114,4 +114,28 @@ public class MixingBijectionTest extends TestCase {
             assertEquals("Normalized matrix has invalid form", true, matrixOK);
         }
     }
+
+    public void testGenerateMixingBijection(){
+        System.out.println("generateMixingBijection");
+        Random rnd = new Random();
+        
+        MixingBijection instance = new MixingBijection();
+        
+        // Method is probabilistic, so test multiple times
+        for(int i=0; i<100; i++){
+            final int mSizeExp = 2 + rnd.nextInt(6);           // matrix dize exponent
+            final int mSubExp  = 1 + rnd.nextInt(mSizeExp-1);  // submatrix dize exponent
+            final int mSize    = i==0 ? 32 : 1 << mSizeExp;
+            final int mSub     = i==0 ?  4 : 1 << mSubExp;
+            
+            GF2MatrixEx mb = instance.generateMixingBijection(mSize, mSub);
+            
+            // main test case - each mixing bijection has to be invertible!
+            NormalGF2MatrixHolder h = new NormalGF2MatrixHolder();
+            mb.normalize(h);
+            
+            assertEquals("Determinant should be 1", 1, h.getDetetrminant());
+            assertEquals("Rank of the matrix does not match", mSize, h.getRank());
+        }
+    }
 }

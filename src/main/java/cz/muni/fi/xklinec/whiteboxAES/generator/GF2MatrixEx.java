@@ -1357,6 +1357,18 @@ public class GF2MatrixEx extends Matrix
     }
     
     /**
+     * Sets GF2 element on given 2D coordinates.
+     * Synonym for set() for backward compatibility with NTL.
+     * 
+     * @param row
+     * @param col
+     * @param b 
+     */
+    public void put(int row, int col, int b){
+        set(matrix, row, col, b);
+    }
+    
+    /**
      * Returns whether given GF2 in given row vector is set.
      * 
      * @param row
@@ -1491,7 +1503,7 @@ public class GF2MatrixEx extends Matrix
     *
     * Returns rank of matrix
     */
-   public static long normalize(NormalGF2MatrixHolder h, final GF2MatrixEx A)
+   public static int normalize(NormalGF2MatrixHolder h, final GF2MatrixEx A)
    {
       int n = A.getNumRows();
       if (A.getNumColumns() != n){
@@ -1536,8 +1548,8 @@ public class GF2MatrixEx extends Matrix
           Mi[i][q] |= 1 << r;
       }
 
-      // Finding leading ones on k-th position.
-      long wn = ((2*n) + GF2MatrixEx.INTMASK)/GF2MatrixEx.INTSIZE;
+       // Finding leading ones on k-th position.
+       int wn = ((2*n) + GF2MatrixEx.INTMASK)/GF2MatrixEx.INTSIZE;
        for (k = 0; k < n; k++) {
            int wk = k >>> GF2MatrixEx.BLOCKEXP;
            int bk = k & GF2MatrixEx.INTMASK;
@@ -1663,8 +1675,30 @@ public class GF2MatrixEx extends Matrix
     *
     * Returns rank of matrix
     */
-   public long normalize(NormalGF2MatrixHolder h)
+   public int normalize(NormalGF2MatrixHolder h)
    {
        return normalize(h, this);
+   }
+   
+   /**
+    * Adds matrix m to this matrix
+    * 
+    * @param m
+    * @return A
+    */
+   public void add(GF2MatrixEx m){
+       final int rows = this.getNumRows();
+       final int cols = this.getNumColumns();
+       if (cols != m.getNumColumns() || rows!=m.getNumRows()){
+           throw new IllegalArgumentException("Matrix dimension mismatch");
+       }
+       
+       final int[][] mi = m.getIntArray();
+       final int len    = ((cols -1) >>> GF2MatrixEx.BLOCKEXP)+1;
+       for(int i=0; i<rows; i++){
+           for(int j=0; j<len; j++){
+               matrix[i][j] ^= mi[i][j];
+           }
+       }
    }
 }
