@@ -4,6 +4,7 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES.generator;
 
+import java.util.Arrays;
 import org.bouncycastle.pqc.math.linearalgebra.GF2mField;
 import org.bouncycastle.pqc.math.linearalgebra.IntUtils;
 import org.bouncycastle.pqc.math.linearalgebra.Matrix;
@@ -29,6 +30,34 @@ public class GF2mMatrixEx extends Matrix {
      */
     protected int[][] matrix;
 
+    /**
+     * Constructor.
+     *
+     * @param field a finite field GF(2^m)
+     * @param enc   byte[] matrix in byte array form
+     */
+    public GF2mMatrixEx(GF2mField field, int m, int n)
+    {
+
+        this.field = field;
+
+        // decode matrix
+        int d = 8;
+        int count = 1;
+        while (field.getDegree() > d)
+        {
+            count++;
+            d += 8;
+        }
+
+        this.numRows = m;
+        this.numColumns = n;
+        this.matrix = new int[this.numRows][this.numColumns];
+        for(int i=0; i<numRows; i++){
+            Arrays.fill(this.matrix[i], 0);
+        }
+    }
+    
     /**
      * Constructor.
      *
@@ -297,6 +326,40 @@ public class GF2mMatrixEx extends Matrix {
     {
         throw new RuntimeException("Not implemented.");
     }
+    
+    public int get(int i, int j){
+        return matrix[i][j];
+    }
+    
+    public void set(int i, int j, int c){
+        matrix[i][j] = c;
+    }
+
+    public int[][] getMatrix() {
+        return matrix;
+    }
+    
+    public GF2mMatrixEx rightMultiply(GF2mMatrixEx a)
+    {
+        if (this.getNumColumns() != a.getNumRows()){
+            throw new IllegalArgumentException("Dimension mismatch");
+        }
+        
+        final int[][] ai = a.getMatrix();
+        final int columnsInA = a.getNumColumns();
+        
+        GF2mMatrixEx res = new GF2mMatrixEx(this.field, this.numRows, columnsInA);
+        final int[][] ri = res.getMatrix();
+        
+        for (int i = 0; i < this.numRows; i++) {
+           for (int j = 0; j < columnsInA; j++) {
+               for (int k = 0; k < this.numColumns; k++) {
+                   ri[i][j] = field.add(ri[i][j], field.mult(matrix[i][k], ai[k][j]));
+               }
+           }
+        }
+        return res;
+    }
 
     public Matrix rightMultiply(Permutation perm)
     {
@@ -320,6 +383,7 @@ public class GF2mMatrixEx extends Matrix {
      * @param other object
      * @return true or false
      */
+    @Override
     public boolean equals(Object other)
     {
 
@@ -351,6 +415,7 @@ public class GF2mMatrixEx extends Matrix {
         return true;
     }
 
+    @Override
     public int hashCode()
     {
         int hash = (this.field.hashCode() * 31 + numRows) * 31 + numColumns;
