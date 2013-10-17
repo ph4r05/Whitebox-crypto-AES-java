@@ -162,6 +162,14 @@ public class XORBox implements Serializable{
         xor = new byte[BOXES][256];
     }
 
+    public static int getWidth() {
+        return WIDTH;
+    }
+
+    public static int getBoxes() {
+        return BOXES;
+    }
+
     public byte[][] getTbl() {
         return xor;
     }

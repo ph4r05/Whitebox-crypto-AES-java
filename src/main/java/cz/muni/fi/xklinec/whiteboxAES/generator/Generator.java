@@ -7,7 +7,8 @@ package cz.muni.fi.xklinec.whiteboxAES.generator;
 import cz.muni.fi.xklinec.whiteboxAES.AES;
 import cz.muni.fi.xklinec.whiteboxAES.State;
 import cz.muni.fi.xklinec.whiteboxAES.Utils;
-import cz.muni.fi.xklinec.whiteboxAES.XORBox;
+import cz.muni.fi.xklinec.whiteboxAES.XORCascade;
+import cz.muni.fi.xklinec.whiteboxAES.XORCascadeState;
 import java.security.SecureRandom;
 
 /**
@@ -28,7 +29,8 @@ public class Generator {
     public static final int  COD_BITS_UNASSIGNED = 0x00;
     public static final int  COD_BITS_4          = 0x01;
     public static final int  COD_BITS_8          = 0x02;
-    public static final int  COD_BITS_8_EXT      = 0x03;
+    public static final int  COD_BITS_8_EXT      = 0x04;
+    public static final int  COD_BITS_EXT        = 0x20;
 
     // MIXING BIJECTION TYPE
     public static final int  MB_IDENTITY = 0x00;
@@ -573,6 +575,36 @@ public class Generator {
     }
     
     /**
+     * Generates external encodings randomly. 
+     * @param extc
+     * @param flags can determine whether some of generated bijections are identities.
+     */
+    public void generateExtEncoding(ExternalBijections extc, int flags){
+	int k;
+
+	// generate 8x8 bijections at first
+	for(k=0; k<2; k++){
+            boolean identity = (k==0 && (flags & WBAESGEN_EXTGEN_fCID) > 0) || (k==1 && (flags & WBAESGEN_EXTGEN_lCID) > 0);
+            generate4X4Bijections(extc.getLfC()[k], 2*AES.BYTES, identity);
+	}
+
+	// generate mixing bijection
+	for(k=0; k<2; k++){
+            boolean identity = (k==0 && (flags & WBAESGEN_EXTGEN_IDMID) > 0) || (k==1 && (flags & WBAESGEN_EXTGEN_ODMID) > 0);
+            if (!identity){
+                final GF2MatrixEx m    = MixingBijection.generateMixingBijection(128, 4, rand, debug);
+                final GF2MatrixEx minv = (GF2MatrixEx) m.computeInverse();
+
+                extc.getIODM()[k].setMb(m);
+                extc.getIODM()[k].setInv(minv);
+            } else {
+                extc.getIODM()[k].setMb( new GF2MatrixEx(32, GF2MatrixEx.MATRIX_TYPE_UNIT));
+                extc.getIODM()[k].setInv(new GF2MatrixEx(32, GF2MatrixEx.MATRIX_TYPE_UNIT));
+            }
+	}
+    }
+    
+    /**
      * Generates input T1 tables.
      */
     public void generateT1Tables() {
@@ -614,31 +646,60 @@ public class Generator {
         }
     }
     
-    public void generateXorTable(Coding xorCoding, XORBox xtb){
-        //byte[][] tbl = xtb.getTbl();
+    /**
+     * Simple routine to generate one XOR table. 
+     * @param xorCoding
+     * @param xtb 
+     */
+    public static void generateXorTable(Coding xorCoding, byte[] xtb, Bijection4x4[] bio){
 	for(int b=0; b<256; b++){
-		int	bb = b;
-		bb = iocoding_encode08x08((byte)bb, xorCoding.IC, true, io.getpCoding04x04(), null);
-		bb = HI((byte)bb) ^ LO((byte)bb);
-		bb = iocoding_encode08x08((byte)bb, xorCoding.OC, false, io.getpCoding04x04(), null);
-                
-		//(*xtb)[b] = bb;
+            int	bb = b;
+            bb = iocoding_encode08x08((byte)bb, xorCoding.IC, true, bio, null);
+            bb = HI((byte)bb) ^ LO((byte)bb);
+            bb = iocoding_encode08x08((byte)bb, xorCoding.OC, false, bio, null);
+            xtb[b] = (byte) bb;
 	}
     }
     
-    public void generate(boolean encrypt, byte[] key, int keySize){
+    /**
+     * Generates whole XOR cascade with 32bit input & output argument. No External 
+     * encoding is used thus can be done here.
+     */
+    public void generateXorCascades(){
+        final GXORCascade[][] xorMap = AESMap.getXor();
+              XORCascade[][]  xor    = AESi.getXor();
+        
+        for(int r=0; r<AES.ROUNDS; r++){
+            for(int i=0; i<2*State.COLS; i++){
+                xorMap[r][i].generateTables(xor[r][i], this);
+            }
+        }
+    }
+    
+    /**
+     * Generates whole XOR cascade with 128bit input & output argument. 
+     * 
+     */
+    public void generateXorStateCascades(){
+        final GXORCascadeState[] xorMap = AESMap.getXorState();
+              XORCascadeState[]  xor    = AESi.getXorState();
+        
+        xorMap[0].generateTables(xor[0], this);
+        xorMap[1].generateTables(xor[1], this);
+    }
+    
+    public void generate(boolean encrypt, byte[] key, int keySize, ExternalBijections ex){
         AESh   = new AEShelper();
         AESi   = new AES();
         AESMap = new AESCodingMap();
         io     = new InternalBijections();
-        extc   = new ExternalBijections();
+        extc   = ex;
         
         // allocate memory needed
         System.out.println("Memory allocation...");
         AESi.init();
         AESMap.init();
         io.memoryAllocate();
-        extc.memoryAllocate();
         
         System.out.println("AES initialization");
         AESh.build(encrypt);
@@ -647,6 +708,9 @@ public class Generator {
         // but can be modified during debuging new features (enable/disable bijections).
         System.out.println("Coding map generation...");
         AESMap.generateCodingMap();
+        
+        // set external encodings to XORCascadeState
+        AESMap.getXorState()[1].setExternalOut(extc.getLfC()[1]);
         
         // Allocate space for IO bijections
         io.alloc04x04(AESMap.getIdx());
@@ -664,8 +728,15 @@ public class Generator {
         generateT1Tables();
 	
         // Generate round keys
+        System.out.println("Computing key schedule ");
         AESh.keySchedule(key, keySize, debug);
         
+        // Generate all XOR cascades
+        System.out.println("Generating all 32bit XOR tables");
+        this.generateXorCascades();
+        this.generateXorStateCascades();
+        
+        // generate cipher based 
         
     }
 

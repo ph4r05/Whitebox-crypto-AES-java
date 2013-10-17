@@ -4,6 +4,9 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES.generator;
 
+import cz.muni.fi.xklinec.whiteboxAES.XORBox;
+import cz.muni.fi.xklinec.whiteboxAES.XORBoxState;
+import cz.muni.fi.xklinec.whiteboxAES.XORCascade;
 import cz.muni.fi.xklinec.whiteboxAES.XORCascadeState;
 import cz.muni.fi.xklinec.whiteboxAES.generator.Generator.XORCODING;
 
@@ -13,6 +16,8 @@ import cz.muni.fi.xklinec.whiteboxAES.generator.Generator.XORCODING;
  */
 public class GXORCascadeState implements IOEncoding{
     protected Generator.XORCODING cod[];
+    protected Bijection4x4[] extCoding = null; // length = XORBoxState.BOXES;
+    protected boolean outputUnallocated = true;
     
     public GXORCascadeState() {
         super();
@@ -29,9 +34,13 @@ public class GXORCascadeState implements IOEncoding{
     /**
      * Allocates XOR cascade coding.
      * @param idx
+     * @param allocateOutput  tells whether to allocate output bijections for 
+     *      last XOR stage - output from XORCascadeState. Used as output from 
+     *      ciper - external encodings are used.
      * @return 
      */
     public final int allocate(int idx, boolean allocateOutput){
+        this.outputUnallocated = !allocateOutput;
         for(int i=0; i<XORCascadeState.BOXES; i++){
             if (!allocateOutput && (i+1) == XORCascadeState.BOXES) {
                 break;
@@ -91,6 +100,41 @@ public class GXORCascadeState implements IOEncoding{
     public void connectOut(GTBox8to32 c, int slot){
         Generator.W08x32Coding cod1 = c.getCod();
         Generator.CONNECT_XOR_TO_W08x32(cod[XORCascadeState.BOXES-1], 2*slot, cod1);
+    }
+    
+    /**
+     * Sets external encoding for output XOR box.
+     * @param ext 
+     */
+    public void setExternalOut(Bijection4x4[] ext){
+        this.extCoding = ext;
+    }
+    
+    /**
+     * Generates XOR tables for particular XOR cascade.
+     * 
+     * @param c
+     * @param g 
+     */
+    public void generateTables(XORCascadeState c, Generator g){
+        final Bijection4x4[] pCoding04x04 = g.getIo().getpCoding04x04();
+        XORBoxState[] x = c.getX();
+        
+        // Iterate over each 128bit XOR box
+        for(int i=0; i<XORCascadeState.BOXES; i++){
+            // Get whole XOR table; tbl[XORBox.BOXES][256]
+            byte[][] tbl = x[i].getTbl();
+            for(int j=0; j<XORBoxState.BOXES; j++){
+                Generator.generateXorTable(cod[i].xtb[j], tbl[j], pCoding04x04);
+                
+                // Do we have some special external encoding here to use ?
+                if (outputUnallocated && (j+1) == XORBoxState.BOXES && extCoding != null){
+                    for(int k=0; k<256; k++){
+                        tbl[j][k] = extCoding[j].coding[tbl[j][k]];
+                    }
+                }
+            }
+        }
     }
 
     public XORCODING[] getCod() {
