@@ -4,10 +4,7 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES;
 
-import cz.muni.fi.xklinec.whiteboxAES.generator.GTBox8to128;
-import cz.muni.fi.xklinec.whiteboxAES.generator.GTBox8to32;
-import cz.muni.fi.xklinec.whiteboxAES.generator.GXORCascade;
-import cz.muni.fi.xklinec.whiteboxAES.generator.GXORCascadeState;
+import cz.muni.fi.xklinec.whiteboxAES.generator.GF2MatrixEx;
 import java.util.Arrays;
 
 /**

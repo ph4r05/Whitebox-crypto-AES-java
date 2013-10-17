@@ -6,7 +6,6 @@ package cz.muni.fi.xklinec.whiteboxAES.generator;
 
 import cz.muni.fi.xklinec.whiteboxAES.Utils;
 import org.bouncycastle.pqc.math.linearalgebra.GF2Matrix;
-import org.bouncycastle.pqc.math.linearalgebra.GF2Vector;
 import org.bouncycastle.pqc.math.linearalgebra.LittleEndianConversions;
 
 /**
@@ -59,8 +58,8 @@ public class NTLUtils {
      * 
      * @param m
      * @param src
-     * @param i
-     * @param j 
+     * @param i     row
+     * @param j     column
      */
     public static void putByteAsColVector(GF2MatrixEx m, byte c, int i, int j){
         for(int k=0; k<8; k++){
@@ -68,11 +67,27 @@ public class NTLUtils {
         }
     }
     
+    
+    /**
+     * Takes 8bit number (BYTE / unsigned char) and stores its bit representation to row vector
+     * starting at given coordinates to array (may be mat_GF2). LSB first.
+     * 
+     * @param m
+     * @param src
+     * @param i     row
+     * @param j     column
+     */
+    public static void putByteAsRowVector(GF2MatrixEx m, byte c, int i, int j){
+        for(int k=0; k<8; k++){
+            m.set(i, j+k, c & (1<<k));
+        }
+    }
+    
     /**
      * Assembles 8bit number (BYTE / unsigned char) from bit representation in column vector. LSB first.
      * @param src
-     * @param i
-     * @param j
+     * @param i     row
+     * @param j     column
      * @return 
      */
     public static byte ColBinaryVectorToByte(GF2MatrixEx src, int i, int j){
@@ -84,5 +99,45 @@ public class NTLUtils {
         return res;
     }
     
+    /**
+     * Assembles 8bit number (BYTE / unsigned char) from bit representation in column vector. LSB first.
+     * @param src
+     * @param i     row
+     * @param j     column
+     * @return 
+     */
+    public static byte RowBinaryVectorToByte(GF2MatrixEx src, int i, int j){
+        byte res = 0;
+        for(int k=0; k<8; k++){
+            res |= src.get(i, j+k)==0 ? 0 : 1<<k;
+        }
+        
+        return res;
+    }
     
+    /**
+     * Sets whole matrix to zero
+     * 
+     * @param m
+     * @return 
+     */
+    public static void zero(GF2MatrixEx m){
+        if (m.getNumRows()==0 || m.getNumColumns()==0) {
+            return;
+        }
+        
+        int[][] mi  = m.getIntArray();        
+        final int k = mi[0].length;
+        for(int i=0; i<mi.length; i++){
+            for(int j=0; j<mi[i].length; j++){
+                mi[i][j] = 0;
+            }
+        }
+    }
+    
+    public static String chex(int n) {
+        // call toUpperCase() if that's required
+        return String.format("0x%02X", n);
+    }
+
 }
