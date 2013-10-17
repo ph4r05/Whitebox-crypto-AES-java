@@ -106,6 +106,15 @@ public class TBox8to32 implements Serializable, Copyable{
     public Copyable copy() {
         return new TBox8to32(this.getTbl(), true);
     }
+    
+    /**
+     * Sets value x to index idx in lookup table.
+     * @param x
+     * @param idx 
+     */
+    public void setValue(long x, int idx){
+        this.tbl[idx] = x;
+    }
 
     @Override
     public int hashCode() {

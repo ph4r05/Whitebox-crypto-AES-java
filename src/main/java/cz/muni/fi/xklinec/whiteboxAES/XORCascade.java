@@ -86,6 +86,10 @@ public class XORCascade implements Serializable{
         x[idx] = xtbl;
     }
 
+    public XORBox[] getX() {
+        return x;
+    }
+
     @Override
     public int hashCode() {
         int hash = 7;

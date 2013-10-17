@@ -159,9 +159,13 @@ public class XORBox implements Serializable{
      * Initializes XOR tables - memory allocation
      */
     public final void init(){
-        xor = new byte[BOXES][];
+        xor = new byte[BOXES][256];
     }
 
+    public byte[][] getTbl() {
+        return xor;
+    }
+    
     @Override
     public int hashCode() {
         int hash = 7;

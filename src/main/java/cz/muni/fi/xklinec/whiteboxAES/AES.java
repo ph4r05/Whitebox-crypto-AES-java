@@ -4,6 +4,10 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES;
 
+import cz.muni.fi.xklinec.whiteboxAES.generator.GTBox8to128;
+import cz.muni.fi.xklinec.whiteboxAES.generator.GTBox8to32;
+import cz.muni.fi.xklinec.whiteboxAES.generator.GXORCascade;
+import cz.muni.fi.xklinec.whiteboxAES.generator.GXORCascadeState;
 import java.util.Arrays;
 
 /**
@@ -30,11 +34,11 @@ public class AES {
        13, 14, 15, 12
     };
     
-    private T1Box[][]         t1       = new T1Box[T1BOXES][State.BYTES];
-    private XORCascadeState[] xorState = new XORCascadeState[T1BOXES];
-    private T2Box[][]         t2       = new T2Box[ROUNDS][State.BYTES];
-    private T3Box[][]         t3       = new T3Box[ROUNDS][State.BYTES];
-    private XORCascade[][]    xor      = new XORCascade[ROUNDS][2*State.COLS];
+    protected T1Box[][]         t1       = new T1Box[T1BOXES][State.BYTES];
+    protected XORCascadeState[] xorState = new XORCascadeState[T1BOXES];
+    protected T2Box[][]         t2       = new T2Box[ROUNDS][State.BYTES];
+    protected T3Box[][]         t3       = new T3Box[ROUNDS][State.BYTES];
+    protected XORCascade[][]    xor      = new XORCascade[ROUNDS][2*State.COLS];
     private boolean           encrypt  = true;
 
     /**
@@ -149,7 +153,73 @@ public class AES {
     public int shift(int idx){
         return getShift(encrypt)[idx];
     }
+    
+    
+    /**
+     * Memory allocation of each box
+     */
+    public void init(){
+        int i,r;
+        
+        t1        = new T1Box[T1BOXES][BYTES];
+        xorState  = new XORCascadeState[T1BOXES];
+        t2        = new T2Box[ROUNDS][BYTES];
+        t3        = new T3Box[ROUNDS][BYTES];
+        xor       = new XORCascade[ROUNDS][2*State.COLS];
 
+        for(r=0; r<ROUNDS; r++){
+            //
+            // XOR state cascade
+            //
+            if (r<T1BOXES){
+                xorState[r] = new XORCascadeState();
+            }
+            
+            for(i=0; i<BYTES; i++){
+                
+                //
+                // T1 boxes
+                //
+                if (r<T1BOXES){
+                    t1[r][i] = new T1Box();
+                }
+                
+                //
+                // T2, T3 boxes
+                //
+                t2[r][i] = new T2Box();
+                t3[r][i] = new T3Box();
+                
+                //
+                // XOR cascade
+                //
+                if (i < 2*State.COLS){
+                    xor[r][i] = new XORCascade();
+                }
+            }
+        }
+    }
+
+    public T1Box[][] getT1() {
+        return t1;
+    }
+
+    public XORCascadeState[] getXorState() {
+        return xorState;
+    }
+
+    public T2Box[][] getT2() {
+        return t2;
+    }
+
+    public T3Box[][] getT3() {
+        return t3;
+    }
+
+    public XORCascade[][] getXor() {
+        return xor;
+    }
+    
     @Override
     public int hashCode() {
         int hash = 7;

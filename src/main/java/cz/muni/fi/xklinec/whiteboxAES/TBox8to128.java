@@ -88,6 +88,15 @@ public class TBox8to128 implements Serializable{
     }
     
     /**
+     * Sets value x to index idx in lookup table.
+     * @param x
+     * @param idx 
+     */
+    public void setValue(final State x, int idx){
+        this.tbl[idx].loadFrom(x);
+    }
+    
+    /**
      * Initializes internal table - memory allocation.
      */
     public final void init(){

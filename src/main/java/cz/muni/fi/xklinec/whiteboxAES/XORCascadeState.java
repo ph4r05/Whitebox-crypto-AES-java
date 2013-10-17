@@ -122,6 +122,10 @@ public class XORCascadeState implements Serializable{
         x[idx] = xtbl;
     }
 
+    public XORBoxState[] getX() {
+        return x;
+    }
+
     @Override
     public int hashCode() {
         int hash = 3;

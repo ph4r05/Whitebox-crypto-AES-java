@@ -35,6 +35,13 @@ public class State implements Serializable, Copyable{
     }
     
     /**
+     * Sets whole vector to zero
+     */
+    public void zero(){
+        Arrays.fill(this.state, (byte)0);
+    }
+    
+    /**
      * Per-byte state getter.
      * @param idx
      * @return 
@@ -100,6 +107,16 @@ public class State implements Serializable, Copyable{
      */
     public static int getTIdx(int idx){
         return getCIdx(idx / COLS, idx % ROWS);//  4*((idx)%4) + ((idx)/4);
+    }
+    
+    /**
+     * Transpose 4x4 index for state matrix.
+     * 
+     * @param idx
+     * @return 
+     */
+    public static int transpose(int idx){
+        return (idx / COLS) + ROWS * (idx % ROWS);
     }
     
     /**

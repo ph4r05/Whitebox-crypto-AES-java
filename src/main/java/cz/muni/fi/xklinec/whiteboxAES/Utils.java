@@ -70,6 +70,25 @@ public class Utils {
         return b;       
     }
     
+    /**
+     * Converts long representation to bytes, returns selected part of long.
+     * 
+     * LSB in long will be 1st bit in byte[0].
+     */
+    public static byte long2byte(long a, int idx){
+        return (byte) ((a >> 8*idx)  & 0xFF);
+    }
+    
+    /**
+     * Converts byte representation to long form on given position - by idx.
+     * Can be used multiple times on same long and OR results together.
+     * 
+     * LSB in long will be 1st bit in byte[0].
+     */
+    public static long byte2long(byte a, int idx){
+        return (long) ((long)a << 8*idx);
+    }
+    
      public static int ceil(double x) {
         return BIG_ENOUGH_INT - (int)(BIG_ENOUGH_FLOOR-x);
     }
