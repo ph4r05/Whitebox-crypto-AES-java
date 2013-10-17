@@ -7,7 +7,7 @@ package cz.muni.fi.xklinec.whiteboxAES.generator;
 import cz.muni.fi.xklinec.whiteboxAES.AES;
 import cz.muni.fi.xklinec.whiteboxAES.State;
 import cz.muni.fi.xklinec.whiteboxAES.Utils;
-import cz.muni.fi.xklinec.whiteboxAES.W32b;
+import cz.muni.fi.xklinec.whiteboxAES.XORBox;
 import java.security.SecureRandom;
 
 /**
@@ -446,7 +446,7 @@ public class Generator {
         }
     }
     
-    
+    private AEShelper AESh;
     private AES AESi;
     private AESCodingMap AESMap;
     private InternalBijections io;
@@ -562,10 +562,10 @@ public class Generator {
         if (!identity) {
             return GenUtils.generateRandomBijection(tbl.coding, tbl.invCoding, 256, true, rand);
         } else {
-            byte i;
+            int i;
             for (i = 0; i < 256; i++) {
-                tbl.coding[i] = i;
-                tbl.invCoding[i] = i;
+                tbl.coding[i] = (byte)i;
+                tbl.invCoding[i] = (byte)i;
             }
 
             return 0;
@@ -579,7 +579,7 @@ public class Generator {
         // To initialize T1[1] map, coding map is needed, since it takes input from last round, for this we need key material
         // to add S-box to T1[1], so it is not done here...
         int i, j;
-        byte b;
+        int b;
 
         final Bijection4x4[][] lfC = extc.getLfC();
         final LinearBijection[] IODM = extc.getIODM();
@@ -591,15 +591,15 @@ public class Generator {
 
             // Build tables - for each byte
             for (b = 0; b < 256; b++) {
-                byte bb = b;
+                int bb = b;
                 mapResult.zero();
 
                 // Decode with IO encoding
-                bb = HILO(lfC[0][2 * i + 0].invCoding[HI(b)], lfC[0][2 * i + 1].invCoding[LO(b)]);
+                bb = HILO(lfC[0][2 * i + 0].invCoding[HI((byte)b)], lfC[0][2 * i + 1].invCoding[LO((byte)b)]);
                 // Transform bb to matrix, to perform mixing bijection operation (matrix multiplication)
                 GF2MatrixEx tmpMat = new GF2MatrixEx(128, 1);
                 // builds binary matrix [0 0 bb 0 0 0 0 0 0 0 0 0 0 0 0 0]^T, if i==2;
-                NTLUtils.putByteAsColVector(tmpMat, bb, i * 8, 0);
+                NTLUtils.putByteAsColVector(tmpMat, (byte)bb, i * 8, 0);
                 // Build MB multiplication result
                 tmpMat = (GF2MatrixEx) IODM[0].getInv().rightMultiply(tmpMat);
                 // Encode 128-bit wide output to map result
@@ -614,7 +614,20 @@ public class Generator {
         }
     }
     
-    public void generate(boolean encrypt){
+    public void generateXorTable(Coding xorCoding, XORBox xtb){
+        //byte[][] tbl = xtb.getTbl();
+	for(int b=0; b<256; b++){
+		int	bb = b;
+		bb = iocoding_encode08x08((byte)bb, xorCoding.IC, true, io.getpCoding04x04(), null);
+		bb = HI((byte)bb) ^ LO((byte)bb);
+		bb = iocoding_encode08x08((byte)bb, xorCoding.OC, false, io.getpCoding04x04(), null);
+                
+		//(*xtb)[b] = bb;
+	}
+    }
+    
+    public void generate(boolean encrypt, byte[] key, int keySize){
+        AESh   = new AEShelper();
         AESi   = new AES();
         AESMap = new AESCodingMap();
         io     = new InternalBijections();
@@ -626,6 +639,9 @@ public class Generator {
         AESMap.init();
         io.memoryAllocate();
         extc.memoryAllocate();
+        
+        System.out.println("AES initialization");
+        AESh.build(encrypt);
         
         // Create coding map. This step is always constant for each AES
         // but can be modified during debuging new features (enable/disable bijections).
@@ -642,5 +658,111 @@ public class Generator {
         // Generate mixing bijections
         System.out.println("Generating mixing bijections...");
         generateMixingBijections(io, MB_8x8, MB_32x32, useMB08x08Identity, useMB32x32Identity);
+        
+        // Init T1[0] tables - for the first round
+	System.out.println("Generating first round tables (T1) ");
+        generateT1Tables();
+	
+        // Generate round keys
+        AESh.keySchedule(key, keySize, debug);
+        
+        
     }
+
+    public AES getAESi() {
+        return AESi;
+    }
+
+    public void setAESi(AES AESi) {
+        this.AESi = AESi;
+    }
+
+    public ExternalBijections getExtc() {
+        return extc;
+    }
+
+    public void setExtc(ExternalBijections extc) {
+        this.extc = extc;
+    }
+
+    public boolean isDebug() {
+        return debug;
+    }
+
+    public void setDebug(boolean debug) {
+        this.debug = debug;
+    }
+
+    public SecureRandom getRand() {
+        return rand;
+    }
+
+    public void setRand(SecureRandom rand) {
+        this.rand = rand;
+    }
+
+    public boolean isUseDualAESARelationsIdentity() {
+        return useDualAESARelationsIdentity;
+    }
+
+    public void setUseDualAESARelationsIdentity(boolean useDualAESARelationsIdentity) {
+        this.useDualAESARelationsIdentity = useDualAESARelationsIdentity;
+    }
+
+    public boolean isUseDualAESIdentity() {
+        return useDualAESIdentity;
+    }
+
+    public void setUseDualAESIdentity(boolean useDualAESIdentity) {
+        this.useDualAESIdentity = useDualAESIdentity;
+    }
+
+    public boolean isUseDualAESSimpeAlternate() {
+        return useDualAESSimpeAlternate;
+    }
+
+    public void setUseDualAESSimpeAlternate(boolean useDualAESSimpeAlternate) {
+        this.useDualAESSimpeAlternate = useDualAESSimpeAlternate;
+    }
+
+    public boolean isUseIO04x04Identity() {
+        return useIO04x04Identity;
+    }
+
+    public void setUseIO04x04Identity(boolean useIO04x04Identity) {
+        this.useIO04x04Identity = useIO04x04Identity;
+    }
+
+    public boolean isUseIO08x08Identity() {
+        return useIO08x08Identity;
+    }
+
+    public void setUseIO08x08Identity(boolean useIO08x08Identity) {
+        this.useIO08x08Identity = useIO08x08Identity;
+    }
+
+    public boolean isUseMB08x08Identity() {
+        return useMB08x08Identity;
+    }
+
+    public void setUseMB08x08Identity(boolean useMB08x08Identity) {
+        this.useMB08x08Identity = useMB08x08Identity;
+    }
+
+    public boolean isUseMB32x32Identity() {
+        return useMB32x32Identity;
+    }
+
+    public void setUseMB32x32Identity(boolean useMB32x32Identity) {
+        this.useMB32x32Identity = useMB32x32Identity;
+    }
+
+    public AESCodingMap getAESMap() {
+        return AESMap;
+    }
+
+    public InternalBijections getIo() {
+        return io;
+    }
+    
 }

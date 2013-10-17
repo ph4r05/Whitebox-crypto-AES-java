@@ -5,10 +5,7 @@
 package cz.muni.fi.xklinec.whiteboxAES.generator;
 
 import cz.muni.fi.xklinec.whiteboxAES.State;
-import org.bouncycastle.pqc.math.linearalgebra.GF2Vector;
 import org.bouncycastle.pqc.math.linearalgebra.GF2mField;
-import org.bouncycastle.pqc.math.linearalgebra.GF2mMatrix;
-import org.bouncycastle.pqc.math.linearalgebra.Matrix;
 
 /**
  *
@@ -80,6 +77,7 @@ public class AEShelper {
              (byte)0x06, (byte)0x7d, (byte)0x8d, (byte)0x8f, (byte)0x9e, (byte)0x24, (byte)0xec, (byte)0xc7}
     };
     
+    protected GF2mField field;
     protected int g[]             = new int[AES_FIELD_SIZE];
     protected int gInv[]          = new int[AES_FIELD_SIZE];
     protected int sbox[]          = new int[AES_FIELD_SIZE];
@@ -90,14 +88,21 @@ public class AEShelper {
     protected int mixColMultiply[]     = new int[4];
     protected int mixColMultiplyInv[]  = new int[4];
     
-    protected GF2mMatrix mixColMat;
-    protected GF2mMatrix mixColInvMat;
+    public static final int RCNUM = 16;
+    protected int RC[] = new int[RCNUM];
+    protected GF2mMatrixEx mixColMat;
+    protected GF2mMatrixEx mixColInvMat;
     
+    /**
+     * Initializes AES constans (S-box, T-box, RC for key schedule).
+     * 
+     * @param encrypt 
+     */
     public void build(boolean encrypt){
-        GF2mField field = new GF2mField(8, POLYNOMIAL);
+        field = new GF2mField(8, POLYNOMIAL);
         System.out.println(field);
         
-        int i,cur = 1;
+        int i,c,cur = 1;
 	gInv[0] = -1;
 	for(i=0; i<AES_FIELD_SIZE; i++){
             g[i] = cur;
@@ -169,20 +174,20 @@ public class AEShelper {
 
 	// MixCols multiplication matrix based on mult polynomial -  see Rijndael description of this.
 	// Polynomials have coefficients in GF(256).
-	mixColMat = new GF2mMatrixSetDims(4,4);
-	mixColInvMat.SetDims(4,4);
+	mixColMat    = new GF2mMatrixEx(field, 4, 4);
+        mixColInvMat = new GF2mMatrixEx(field, 4, 4);
 	for(i=0; i<4; i++){
-		for(c=0; c<4; c++){
-			mixColMat.put(i, c, mixColMultiply[(i+4-c) % 4]);
-			mixColInvMat.put(i, c, mixColMultiplyInv[(i+4-c) % 4]);
-		}
+            for(c=0; c<4; c++){
+                mixColMat.set(i, c, mixColMultiply[(i+4-c) % 4]);
+                mixColInvMat.set(i, c, mixColMultiplyInv[(i+4-c) % 4]);
+            }
 	}
 
 	// Round key constant RC (for key schedule) obeys this reccurence:
 	// RC[0] = 1
 	// RC[i] = '02' * RC[i-1] = x * RC[i-1] = x^{i-1} `mod` R(X)
 	RC[0] = g[0];
-	for(i=1; i<16; i++){
+	for(i=1; i<RCNUM; i++){
 		RC[i] =  g[25] * RC[i-1];
 	}
     }
@@ -256,92 +261,110 @@ public class AEShelper {
     }
     
     /**
+     * Returns number of all round keys together. 
+     * 
+     * @param keySize
+     * @return 
+     */
+    public static int getRoundKeysSize(int keySize){
+        return (4 * State.COLS * (getNumberOfRounds(keySize) + 1));
+    }
+    
+    /**
      * AES key schedule.
      * 
-     * @param expandedKey
+     * @param roundKeys
      * @param key
      * @param keySize 
      */
-    public static void expandKey(GF2Vector expandedKey, byte[] key, int size, boolean debug){
+    public byte[] keySchedule(byte[] key, int size, boolean debug){
         /* current expanded keySize, in bytes */
 	int currentSize = 0;
 	int rconIteration = 0;
 	int i,j;
-	int Nr = getNumberOfRounds(size);
-	int expandedKeySize = (4 * State.COLS * (Nr + 1));
-//
-//	GF2E tmp;
-//	vec_GF2E t(INIT_SIZE, 4);
-//
-//	 result expanded key size = NB * (NK + 1)
-//	if (debug){
-//            System.out.println("Expanded key size will be: " + expandedKeySize);
-//        }
-//        
-//	expandedKey.SetLength(expandedKeySize);
-//
-//	/* set the 16,24,32 bytes of the expanded key to the input key */
-//	for (i = 0; i < size; i++)
-//		expandedKey[i] = key[i];
-//
-//	currentSize += size;
-//	while (currentSize < expandedKeySize){
-//		if (debug){
-//                    System.out.println("CurrentSize: " + currentSize + "; expandedKeySize: " + expandedKeySize);
-//                }
-//                
-//		/* assign the previous 4 bytes to the temporary value t */
-//		for (i = 0; i < 4; i++) {
-//			t[i] = expandedKey[(currentSize - 4) + i];
-//		}
-//
-//		/**
-//		 * every 16,24,32 bytes we apply the core schedule to t
-//		 * and increment rconIteration afterwards
-//		 */
-//		if(currentSize % size == 0) {
-//			core(t, rconIteration++);
-//			/* rotate the 32-bit word 8 bits to the left */
-//			tmp=t[0]; 	t[0]=t[1];
-//			t[1]=t[2];	t[2]=t[3];
-//			t[3]=tmp;
-//			/* apply S-Box substitution on all 4 parts of the 32-bit word */
-//			for (j = 0; j < 4; ++j){
-//				if (debug){
-//                                    System.out.println("Sboxing key t[" + j + "]=" + t[j] + "=" << GF2EHEX(t[j]) + "; sboxval: " + CHEX(sboxAffine[getLong(t[j])])) ;
-//                                }
-//				
-//                                t[j] = GF2EFromLong(sboxAffine[getLong(t[j])], AES_FIELD_DIM);
-//				
-//                                if (debug){
-//                                    System.out.println(" after Sbox = " + t[j] + "="  << GF2EHEX(t[j]));
-//                                }
-//			}
-//			/* XOR the output of the rcon operation with i to the first part (leftmost) only */
-//			t[0] = t[0] + RC[rconIteration++];
-//
-//			if (debug){
-//			    System.out.println("; after XOR with RC[" + GF2EHEX(RC[rconIteration-1]) + "] = " + t[0] + " = " + GF2EHEX(t[0]));
-//                        }
-//		}
-//
-//		/* For 256-bit keys, we add an extra sbox to the calculation */
-//		if(size == KEY_SIZE_32 && ((currentSize % size) == 16)) {
-//			for(i = 0; i < 4; i++)
-//				t[i] = GF2EFromLong(sboxAffine[getLong(t[i])], AES_FIELD_DIM);
-//		}
-//		/* We XOR t with the four-byte block 16,24,32 bytes before the new expanded key.
-//		* This becomes the next four bytes in the expanded key.
-//		*/
-//		for(i = 0; i < 4; i++) {
-//			expandedKey[currentSize] = expandedKey[currentSize - size] + t[i];
-//
-//			#ifdef GENERIC_AES_DEBUG
-//			cout << "t[" << i << "] = " << GF2EHEX(t[i]) << endl;
-//			#endif
-//
-//			currentSize++;
-//		}
-//	}
+	int roundKeysSize = getRoundKeysSize(size);
+
+	byte tmp;
+        byte[] t = new byte[4]; //vec_GF2E t(INIT_SIZE, 4);
+        byte[] roundKeys = new byte[roundKeysSize];
+        if (debug) {
+            System.out.println("Expanded key size will be: " + roundKeysSize);
+        }
+
+        /* set the 16,24,32 bytes of the expanded key to the input key */
+        for (i = 0; i < size; i++) {
+            roundKeys[i] = key[i];
+        }
+
+        currentSize += size;
+        while (currentSize < roundKeysSize) {
+            if (debug) {
+                System.out.println("CurrentSize: " + currentSize + "; expandedKeySize: " + roundKeysSize);
+            }
+
+            /* assign the previous 4 bytes to the temporary value t */
+            for (i = 0; i < 4; i++) {
+                t[i] = roundKeys[(currentSize - 4) + i];
+            }
+
+            /**
+             * every 16,24,32 bytes we apply the core schedule to t and
+             * increment rconIteration afterwards
+             */
+            if (currentSize % size == 0) {
+                //core(t, rconIteration++);
+		/* rotate the 32-bit word 8 bits to the left */
+                tmp = t[0];
+                t[0] = t[1];
+                t[1] = t[2];
+                t[2] = t[3];
+                t[3] = tmp;
+                /* apply S-Box substitution on all 4 parts of the 32-bit word */
+                for (j = 0; j < 4; ++j) {
+                    if (debug) {
+                        System.out.println("Sboxing key t[" + j
+                                + "]=" + t[j]
+                                + "=" + NTLUtils.chex(t[j])
+                                + "; sboxval: " + NTLUtils.chex(sboxAffine[t[j]]));
+                    }
+
+                    // Apply S-box to t[j]
+                    t[j] = (byte) sboxAffine[t[j]];
+
+                    if (debug) {
+                        System.out.println(" after Sbox = " + t[j] + "=" + NTLUtils.chex(t[j]));
+                    }
+                }
+                
+                /* XOR the output of the rcon operation with i to the first part (leftmost) only */
+                t[0] = (byte) field.add(t[0], RC[rconIteration++]);
+
+                if (debug) {
+                    System.out.println("; after XOR with RC[" + NTLUtils.chex(RC[rconIteration - 1]) + "] = " + t[0] + " = " + NTLUtils.chex(t[0]));
+                }
+            }
+
+            /* For 256-bit keys, we add an extra sbox to the calculation */
+            if (size == 32 && ((currentSize % size) == 16)) {
+                for (i = 0; i < 4; i++) {
+                    t[i] = (byte) sboxAffine[t[i]];
+                }
+            }
+            
+            /* We XOR t with the four-byte block 16,24,32 bytes before the new expanded key.
+             * This becomes the next four bytes in the expanded key.
+             */
+            for (i = 0; i < 4; i++) {
+                roundKeys[currentSize] = (byte) field.add(roundKeys[currentSize - size], t[i]);
+
+                if (debug) {
+                    System.out.println("t[" + i + "] = " + NTLUtils.chex(t[i]));
+                }
+
+                currentSize++;
+            }
+        }
+
+        return roundKeys;
     }
 }
