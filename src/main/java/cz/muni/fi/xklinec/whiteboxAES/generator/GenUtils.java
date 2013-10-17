@@ -130,6 +130,45 @@ public class GenUtils {
      * @param rand
      * @return 
      */
+    public static int generateRandomBijection(byte[] bijection, byte[] inverse, int size, boolean init, SecureRandom rand){
+	int i;
+        if (init) {
+            for (i = 0; i < size; i++) {
+                bijection[i] = (byte)i;
+                inverse[i] = (byte)i;
+            }
+        }
+
+        // yes, we start from second element on purpose, to produce uniform distribution
+        for (i = 1; i < size; i++) {
+            // rnd is index from interval [0, i]
+            int rnd = rand.nextInt(i + 1);
+
+            // swap indexes
+            byte idx = inverse[bijection[rnd]];
+            inverse[bijection[rnd]] = inverse[bijection[i]];
+            inverse[bijection[i]] = idx;
+
+            // swap values
+            byte tmp = bijection[rnd];
+            bijection[rnd] = bijection[i];
+            bijection[i] = tmp;
+        }
+
+        return 0;
+    }
+    
+    /**
+     * Generates random bijection and its inverse on integer type of given size.
+     * Secure random is provided by user.
+     * 
+     * @param bijection
+     * @param inverse
+     * @param size
+     * @param init
+     * @param rand
+     * @return 
+     */
     public static int generateRandomBijection(int[] bijection, int[] inverse, int size, boolean init, SecureRandom rand){
 	int i;
         if (init) {

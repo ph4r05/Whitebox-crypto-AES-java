@@ -21,7 +21,7 @@ public class MixingBijection {
      * Generates random matrix of dimension pxp that is invertible in GF(2).
      * Returns two matrices, M[0] is random pxp regular matrix, M[1] its inverse.
      */
-    public long generateInvertiblePM(GF2MatrixEx[] M, int p){
+    public static long generateInvertiblePM(GF2MatrixEx[] M, int p, SecureRandom rand){
         GF2MatrixEx[] R = GF2MatrixEx.createRandomRegularMatrixAndItsInverse(p, rand);
         M[0] = R[0];
         M[1] = R[1];
@@ -31,10 +31,25 @@ public class MixingBijection {
     
     /**
      * Generates random matrix of dimension pxp that is invertible in GF(2).
+     * Returns two matrices, M[0] is random pxp regular matrix, M[1] its inverse.
      */
-    public GF2MatrixEx generateInvertiblePM(int p){
+    public long generateInvertiblePM(GF2MatrixEx[] M, int p){
+        return generateInvertiblePM(M, p, rand);
+    }
+    
+    /**
+     * Generates random matrix of dimension pxp that is invertible in GF(2).
+     */
+    public static GF2MatrixEx generateInvertiblePM(int p, SecureRandom rand){
         GF2MatrixEx[] R = GF2MatrixEx.createRandomRegularMatrixAndItsInverse(p, rand);
         return R[0];
+    }
+    
+    /**
+     * Generates random matrix of dimension pxp that is invertible in GF(2).
+     */
+    public GF2MatrixEx generateInvertiblePM(int p){
+        return generateInvertiblePM(p, rand);
     }
     
     /**
@@ -43,14 +58,14 @@ public class MixingBijection {
      *
      * Returns rank of matrix
      */
-    public int invP(NormalGF2MatrixHolder h, final GF2MatrixEx A){
+    public static int invP(NormalGF2MatrixHolder h, final GF2MatrixEx A){
         return A.normalize(h);
     }
     
     /**
      * Generates n x n matrix M in canonical form for given rank.
      */
-    public GF2MatrixEx canonical(int rank, int n){
+    public static GF2MatrixEx canonical(int rank, int n){
         GF2MatrixEx m = new GF2MatrixEx(n, GF2MatrixEx.MATRIX_TYPE_ZERO);
         for (int i = 0; i < rank; i++) {
             m.set(i, i, 1);
@@ -65,7 +80,7 @@ public class MixingBijection {
      *
      * T = canonical(rank,m) + A is invertible, according to this paper.
      */
-    public GF2MatrixEx generateARankMatrix(int rank, int n) {
+    public static GF2MatrixEx generateARankMatrix(int rank, int n) {
         GF2MatrixEx A = new GF2MatrixEx(n, GF2MatrixEx.MATRIX_TYPE_ZERO);
         int i = 0, offset = 0;
 
@@ -114,20 +129,29 @@ public class MixingBijection {
         }
         return A;
     }
+   
+   /**
+    * Generates mixing bijection matrix according to paper [http://eprint.iacr.org/2002/096.pdf].
+    * p | t. Will compute matrix A s.t. dimension = t x t and is composed from block of size p x p
+    * submatrices.
+    */
+   public GF2MatrixEx generateMixingBijection(int t, int p){
+       return generateMixingBijection(t, p, rand, debug);
+   }
     
     /**
     * Generates mixing bijection matrix according to paper [http://eprint.iacr.org/2002/096.pdf].
     * p | t. Will compute matrix A s.t. dimension = t x t and is composed from block of size p x p
     * submatrices.
     */
-   public GF2MatrixEx generateMixingBijection(int t, int p){
+   public static GF2MatrixEx generateMixingBijection(int t, int p, SecureRandom rand, boolean debug){
 	// validate parameters
 	if (t<p || (t%p) != 0){
             throw new IllegalArgumentException("Invalid parameters t, p");
 	}
         
 	// 0. generate M matrix pxp that is invertible
-	GF2MatrixEx M = generateInvertiblePM(p);
+	GF2MatrixEx M = generateInvertiblePM(p, rand);
 
 	// some matrices that we will need, naming according to the paper
 	GF2MatrixEx X; 	GF2MatrixEx Y;

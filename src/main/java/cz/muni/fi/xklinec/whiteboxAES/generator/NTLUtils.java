@@ -52,4 +52,37 @@ public class NTLUtils {
     public static GF2Matrix generateGF2Matrix(long rows, long cols){
         return new GF2Matrix(generateGF2MatrixEncodedForm((int)rows, (int)cols));
     }
+    
+    /**
+     * Takes 8bit number (BYTE / unsigned char) and stores its bit representation to col vector
+     * starting at given coordinates to array (may be mat_GF2). LSB first.
+     * 
+     * @param m
+     * @param src
+     * @param i
+     * @param j 
+     */
+    public static void putByteAsColVector(GF2MatrixEx m, byte c, int i, int j){
+        for(int k=0; k<8; k++){
+            m.set(i+k, j, c & (1<<k));
+        }
+    }
+    
+    /**
+     * Assembles 8bit number (BYTE / unsigned char) from bit representation in column vector. LSB first.
+     * @param src
+     * @param i
+     * @param j
+     * @return 
+     */
+    public static byte ColBinaryVectorToByte(GF2MatrixEx src, int i, int j){
+        byte res = 0;
+        for(int k=0; k<8; k++){
+            res |= src.get(i+k, j)==0 ? 0 : 1<<k;
+        }
+        
+        return res;
+    }
+    
+    
 }
