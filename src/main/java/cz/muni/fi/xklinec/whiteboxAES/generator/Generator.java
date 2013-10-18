@@ -623,8 +623,8 @@ public class Generator {
                 extc.getIODM()[k].setMb(m);
                 extc.getIODM()[k].setInv(minv);
             } else {
-                extc.getIODM()[k].setMb( new GF2MatrixEx(32, GF2MatrixEx.MATRIX_TYPE_UNIT));
-                extc.getIODM()[k].setInv(new GF2MatrixEx(32, GF2MatrixEx.MATRIX_TYPE_UNIT));
+                extc.getIODM()[k].setMb( new GF2MatrixEx(128, GF2MatrixEx.MATRIX_TYPE_UNIT));
+                extc.getIODM()[k].setInv(new GF2MatrixEx(128, GF2MatrixEx.MATRIX_TYPE_UNIT));
             }
 	}
     }
@@ -714,6 +714,23 @@ public class Generator {
     }
     
     /**
+     * Initializes internal structures prior generate().
+     * Memory allocation, ...
+     */
+    public void initInternal(){
+        AESh   = new AEShelper();
+        AESi   = new AES();
+        AESMap = new AESCodingMap();
+        io     = new InternalBijections();
+        
+        // allocate memory needed
+        System.out.println("Memory allocation...");
+        AESi.init();
+        AESMap.init();
+        io.memoryAllocate();
+    }
+    
+    /**
      * Generate whitebox AES tables.
      * @param encrypt
      * @param key
@@ -721,17 +738,8 @@ public class Generator {
      * @param ex 
      */
     public void generate(boolean encrypt, byte[] key, int keySize, ExternalBijections ex){
-        AESh   = new AEShelper();
-        AESi   = new AES();
-        AESMap = new AESCodingMap();
-        io     = new InternalBijections();
-        extc   = ex;
-        
-        // allocate memory needed
-        System.out.println("Memory allocation...");
-        AESi.init();
-        AESMap.init();
-        io.memoryAllocate();
+        this.initInternal();
+        extc = ex;
         
         System.out.println("AES initialization");
         AESh.build(encrypt);

@@ -18,14 +18,26 @@ public class State implements Serializable, Copyable{
     protected byte[] state;
     protected boolean immutable=false;
 
+    /**
+     * Default constructor, allocates memory for internal state representation.
+     */
     public State() {
-        
+        init();
     }
 
+    /**
+     * Uses given byte[] as internal representation, no copy.
+     * @param state 
+     */
     public State(byte[] state) {
         this.state = state;
     }
     
+    /**
+     * Copy/assign constructor.
+     * @param state
+     * @param copy 
+     */
     public State(byte[] state, boolean copy) {
         if (copy){
             this.state = Arrays.copyOf(state, BYTES);
@@ -35,7 +47,7 @@ public class State implements Serializable, Copyable{
     }
     
     /**
-     * Sets whole vector to zero
+     * Sets whole vector to zero.
      */
     public void zero(){
         Arrays.fill(this.state, (byte)0);
