@@ -367,4 +367,199 @@ public class AEShelper {
 
         return roundKeys;
     }
+
+    /**
+     * AES S-box.
+     * @param e
+     * @return 
+     */
+    public int ByteSub(int e){
+        return sboxAffine[e];
+    }
+
+    /**
+     * AES S-box on whole state array.
+     * @param state 
+     */
+    public void ByteSub(State state) {
+        int i, j;
+        for (i = 0; i < State.ROWS; i++) {
+            for (j = 0; j < State.COLS; j++) {
+                state.set((byte) sboxAffine[state.get(i, j)], i, j);
+            }
+        }
+    }
+
+    /**
+     * AES S-box inverse.
+     * @param e
+     * @return 
+     */
+    public int ByteSubInv(int e){
+        return sboxAffineInv[e];
+    }
+
+    /**
+     * AES S-box inverse on whole state array.
+     * @param state 
+     */
+    public void ByteSubInv(State state){
+        int i, j;
+        for (i = 0; i < State.ROWS; i++) {
+            for (j = 0; j < State.COLS; j++) {
+                state.set((byte) sboxAffineInv[state.get(i, j)], i, j);
+            }
+        }
+    }
+
+    /**
+     * Adds specified round key to state array.
+     * @param state
+     * @param expandedKey
+     * @param offset 
+     */
+    public void AddRoundKey(State state, byte[] expandedKey, int offset){
+        int i,j;
+        for(i=0; i<State.ROWS; i++){
+            for(j=0; j<State.COLS; j++){
+                state.set((byte) field.add(state.get(i, j), expandedKey[offset + j*4+i]), i, j);
+            }
+        }
+    }
+
+    /**
+     * Shift Rows operation on state array, in-place.
+     * @param state 
+     */
+    public void ShiftRows(State state) {
+        // 1. row = no shift. 2. row = cyclic shift to the left by 1
+        // for AES with Nb=4, left shift for rows are: 1=1, 2=2, 3=3.
+        byte tmp;
+        int i, j;
+        for (i = 1; i < State.ROWS; i++) {
+            for (j = 1; j <= i; j++) {
+                tmp = state.get(i, 0);
+                state.set(state.get(i, 1), i, 0);
+                state.set(state.get(i, 2), i, 1);
+                state.set(state.get(i, 3), i, 2);
+                state.set(tmp, i, 3);
+            }
+        }
+    }
+
+    /**
+     * Inverse of Shift Rows operation on state array, in-place.
+     * @param state 
+     */
+    public void ShiftRowsInv(State state) {
+        // 1. row = no shift. 2. row = cyclic shift to the left by 1
+        // for AES with Nb=4, left shift for rows are: 1=1, 2=2, 3=3.
+        byte tmp;
+        int i, j;
+        for (i = 1; i < State.ROWS; i++) {
+            for (j = 1; j <= i; j++) {
+                tmp = state.get(i, 3);
+                state.set(state.get(i, 2), i, 3);
+                state.set(state.get(i, 1), i, 2);
+                state.set(state.get(i, 0), i, 1);
+                state.set(tmp, i, 0);
+            }
+        }
+    }
+
+    /**
+     * MixColumn operation on all columns on state matrix.
+     * @param state 
+     */
+    public void MixColumn(State state) {
+        int i, j;
+        GF2mMatrixEx resMat;
+        GF2mMatrixEx tmpMat = new GF2mMatrixEx(field, 4, 1);
+
+        for (i = 0; i < State.COLS; i++) {
+            // copy i-th column to 4*1 matrix - for multiplication
+            for (j = 0; j < State.ROWS; j++) {
+                tmpMat.set(j, 0, state.get(j, i));
+            }
+
+            resMat = mixColMat.rightMultiply(tmpMat);
+
+            // copy result back to i-th column
+            for (j = 0; j < State.ROWS; j++) {
+                state.set((byte) resMat.get(j, 0), j, i);
+            }
+        }
+    }
+
+    /**
+     * Inverse MixColumn operation on all columns on state matrix.
+     * @param state 
+     */
+    public void MixColumnInv(State state){
+        int i,j;
+        GF2mMatrixEx resMat;
+        GF2mMatrixEx tmpMat = new GF2mMatrixEx(field, 4, 1);
+
+        for (i = 0; i < State.COLS; i++) {
+            // copy i-th column to 4*1 matrix - for multiplication
+            for (j = 0; j < State.ROWS; j++) {
+                tmpMat.set(j, 0, state.get(j, i));
+            }
+
+            resMat = mixColInvMat.rightMultiply(tmpMat);
+
+            // copy result back to i-th column
+            for (j = 0; j < State.ROWS; j++) {
+                state.set((byte) resMat.get(j, 0), j, i);
+            }
+        }
+    }
+
+    public GF2mField getField() {
+        return field;
+    }
+
+    public int[] getG() {
+        return g;
+    }
+
+    public int[] getgInv() {
+        return gInv;
+    }
+
+    public int[] getSbox() {
+        return sbox;
+    }
+
+    public int[] getSboxAffine() {
+        return sboxAffine;
+    }
+
+    public int[] getSboxAffineInv() {
+        return sboxAffineInv;
+    }
+
+    public int[] getMixColModulus() {
+        return mixColModulus;
+    }
+
+    public int[] getMixColMultiply() {
+        return mixColMultiply;
+    }
+
+    public int[] getMixColMultiplyInv() {
+        return mixColMultiplyInv;
+    }
+
+    public int[] getRC() {
+        return RC;
+    }
+
+    public GF2mMatrixEx getMixColMat() {
+        return mixColMat;
+    }
+
+    public GF2mMatrixEx getMixColInvMat() {
+        return mixColInvMat;
+    }
 }
