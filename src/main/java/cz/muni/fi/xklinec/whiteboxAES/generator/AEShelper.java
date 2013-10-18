@@ -328,7 +328,7 @@ public class AEShelper {
                     }
 
                     // Apply S-box to t[j]
-                    t[j] = (byte) sboxAffine[t[j]];
+                    t[j] = (byte) (sboxAffine[t[j] & 0xff] & 0xff);
 
                     if (debug) {
                         System.out.println(" after Sbox = " + t[j] + "=" + NTLUtils.chex(t[j]));
@@ -346,7 +346,7 @@ public class AEShelper {
             /* For 256-bit keys, we add an extra sbox to the calculation */
             if (size == 32 && ((currentSize % size) == 16)) {
                 for (i = 0; i < 4; i++) {
-                    t[i] = (byte) sboxAffine[t[i]];
+                    t[i] = (byte) (sboxAffine[t[i] & 0xff] & 0xff);
                 }
             }
             

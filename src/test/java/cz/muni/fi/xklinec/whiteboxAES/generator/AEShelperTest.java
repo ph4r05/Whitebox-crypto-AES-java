@@ -4,6 +4,7 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES.generator;
 
+import cz.muni.fi.xklinec.whiteboxAES.AES;
 import junit.framework.TestCase;
 
 /**
@@ -58,16 +59,35 @@ public class AEShelperTest extends TestCase {
     }
 
     /**
-     * Test of expandKey method, of class AEShelper.
-     
-    public void testExpandKey() {
-        System.out.println("expandKey");
-        GF2Vector expandedKey = null;
-        byte[] key = null;
-        int size = 0;
-        boolean debug = false;
-        AEShelper.expandKey(expandedKey, key, size, debug);
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
-    }*/
+     * Test of build method, of class AEShelper.
+     */
+    public void testKeySchedule() {
+        System.out.println("keySchedule");
+        AEShelper a = new AEShelper();
+        a.build(true);
+        
+        // test sample key schedule
+        byte[] roundKey = a.keySchedule(AEShelper.testVect128_key, 16, false);
+        
+        // test copy of key
+        for(int i=0; i<16; i++){
+            assertEquals("Key schedule is invalid", AEShelper.testVect128_key[i],  roundKey[i]);
+        }
+        
+        // test key schedule for the last round. Alg. is iterative and current 
+        // round depends on the last one -> it is enough to test the last one.
+        // Source: http://csrc.nist.gov/publications/fips/fips197/fips-197.pdf
+        final byte[] roundKeyFinal = new byte[] {
+            (byte)0xd0, (byte)0x14, (byte)0xf9, (byte)0xa8,
+            (byte)0xc9, (byte)0xee, (byte)0x25, (byte)0x89,
+            (byte)0xe1, (byte)0x3f, (byte)0x0c, (byte)0xc8,
+            (byte)0xb6, (byte)0x63, (byte)0x0c, (byte)0xa6
+        };
+        
+        for(int i=0; i<16; i++){
+            assertEquals("Key schedule is invalid; last round check", 
+                    roundKeyFinal[i],
+                    roundKey[AES.BYTES * AES.ROUNDS + i]);
+        }
+    }
 }
