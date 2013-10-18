@@ -4,14 +4,12 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES.generator;
 
-import com.sun.crypto.provider.AESCipher;
 import cz.muni.fi.xklinec.whiteboxAES.AES;
 import cz.muni.fi.xklinec.whiteboxAES.State;
 import cz.muni.fi.xklinec.whiteboxAES.T1Box;
 import cz.muni.fi.xklinec.whiteboxAES.T2Box;
 import cz.muni.fi.xklinec.whiteboxAES.T3Box;
 import cz.muni.fi.xklinec.whiteboxAES.Utils;
-import cz.muni.fi.xklinec.whiteboxAES.W32b;
 import cz.muni.fi.xklinec.whiteboxAES.XORCascade;
 import cz.muni.fi.xklinec.whiteboxAES.XORCascadeState;
 import java.security.SecureRandom;
@@ -884,7 +882,7 @@ public class Generator {
                         // rows (j). Key is serialized by rows.
                         if (encrypt) {
                             int tmpKey = keySchedule[16 * r + State.transpose(AES.shift(idx, encrypt))];
-                            tmpGF2E = field.add(tmpGF2E, tmpKey);
+                            tmpGF2E = field.add(tmpGF2E & 0xff, tmpKey & 0xff) & 0xff;
                         } else {
                             if (r == 0) {
                                 // Decryption & first round => add k_10 to state.
@@ -892,7 +890,7 @@ public class Generator {
                                 // AddRoundKey(State, k_10)  | -> InvShiftRows(State)
                                 // InvShiftRows(State)       | -> AddRoundKey(State, InvShiftRows(k_10))
                                 int tmpKey = keySchedule[16 * AES.ROUNDS + State.transpose(AES.shift(idx, encrypt))];
-                                tmpGF2E = field.add(tmpGF2E, tmpKey);
+                                tmpGF2E = field.add(tmpGF2E & 0xff, tmpKey & 0xff) & 0xff;
                             }
                         }
 
@@ -905,7 +903,7 @@ public class Generator {
                         // Decryption case:
                         // T(x) = Sbox(x) + k
                         if (!encrypt) {
-                            tmpE = field.add(tmpE, keySchedule[16 * (AES.ROUNDS - r - 1) + State.transpose(idx)]);
+                            tmpE = field.add(tmpE & 0xff, keySchedule[16 * (AES.ROUNDS - r - 1) + State.transpose(idx)] & 0xff) & 0xff;
                         }
 
                         // If we are in last round we also have to add k_10, not affected by ShiftRows()
@@ -913,7 +911,7 @@ public class Generator {
                         if (r == AES.ROUNDS - 1) {
                             // Adding last encryption key (k_10) by special way is performed only in encryption
                             if (encrypt) {
-                                tmpE = field.add(tmpE, keySchedule[16 * (r + 1) + State.transpose(idx)]);
+                                tmpE = field.add(tmpE & 0xff, keySchedule[16 * (r + 1) + State.transpose(idx)] & 0xff) & 0xff;
                             }
 
                             // Now we use output encoding G and quit, no MixColumn or Mixing bijections here.

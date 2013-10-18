@@ -62,7 +62,7 @@ public class MixingBijectionTest extends TestCase {
                 }   
             }
 
-            long result = instance.invP(h, A);
+            long result = MixingBijection.invP(h, A);
             
             /*
             System.out.println("Matrix2invert: N="+N+"; rank="+rank+"\n" + A.toString());
