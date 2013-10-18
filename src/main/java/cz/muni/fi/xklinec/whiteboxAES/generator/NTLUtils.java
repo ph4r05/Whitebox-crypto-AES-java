@@ -70,7 +70,7 @@ public class NTLUtils {
     
     /**
      * Takes 8bit number (BYTE / unsigned char) and stores its bit representation to row vector
-     * starting at given coordinates to array (may be mat_GF2). LSB first.
+     * starting at given coordinates to array (may be mat_GF2). MSB first - natural representation.
      * 
      * @param m
      * @param src
@@ -79,7 +79,7 @@ public class NTLUtils {
      */
     public static void putByteAsRowVector(GF2MatrixEx m, byte c, int i, int j){
         for(int k=0; k<8; k++){
-            m.set(i, j+k, c & (1<<k));
+            m.set(i, j+k, c & (1<<(7-k)));
         }
     }
     
@@ -90,13 +90,13 @@ public class NTLUtils {
      * @param j     column
      * @return 
      */
-    public static byte ColBinaryVectorToByte(final GF2MatrixEx src, int i, int j){
-        byte res = 0;
+    public static byte colBinaryVectorToByte(final GF2MatrixEx src, int i, int j){
+        long res = 0;
         for(int k=0; k<8; k++){
             res |= src.get(i+k, j)==0 ? 0 : 1<<k;
         }
         
-        return res;
+        return (byte)res;
     }
     
     /**
@@ -106,7 +106,7 @@ public class NTLUtils {
      * @param j     column
      * @return 
      */
-    public static byte RowBinaryVectorToByte(final GF2MatrixEx src, int i, int j){
+    public static byte rowBinaryVectorToByte(final GF2MatrixEx src, int i, int j){
         byte res = 0;
         for(int k=0; k<8; k++){
             res |= src.get(i, j+k)==0 ? 0 : 1<<k;
@@ -173,10 +173,10 @@ public class NTLUtils {
         //assert((src.NumRows()) < (row*8));
         //assert((src.NumCols()) < col);
         long dst = 0;
-        dst |= Utils.byte2long(ColBinaryVectorToByte(src, row+8*0, col), 0);
-        dst |= Utils.byte2long(ColBinaryVectorToByte(src, row+8*1, col), 1);
-        dst |= Utils.byte2long(ColBinaryVectorToByte(src, row+8*2, col), 2);
-        dst |= Utils.byte2long(ColBinaryVectorToByte(src, row+8*3, col), 3);
+        dst |= Utils.byte2long(colBinaryVectorToByte(src, row+8*0, col), 0);
+        dst |= Utils.byte2long(colBinaryVectorToByte(src, row+8*1, col), 1);
+        dst |= Utils.byte2long(colBinaryVectorToByte(src, row+8*2, col), 2);
+        dst |= Utils.byte2long(colBinaryVectorToByte(src, row+8*3, col), 3);
         return dst;
     }
 

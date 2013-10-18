@@ -107,7 +107,7 @@ public class AEShelper {
 	for(i=0; i<AES_FIELD_SIZE; i++){
             g[i] = cur;
             gInv[cur] = i;
-            field.mult(cur, GENERATOR);
+            cur = field.mult(cur, GENERATOR);
 	}
         
         // 2. compute GF(256) element inverses in terms of generator exponent
@@ -137,9 +137,8 @@ public class AEShelper {
             
             // const + A(x^{-1})
             GF2MatrixEx resMatrix = (GF2MatrixEx) afM.rightMultiply(tmpM);
-            tmpRes = field.add(NTLUtils.ColBinaryVectorToByte(resMatrix, 0, 0), afC);
+            tmpRes = (byte) field.add(NTLUtils.colBinaryVectorToByte(resMatrix, 0, 0), afC) & 0xff;
             
-            //transValue = 
             sboxAffine[i] = tmpRes;
             sboxAffineInv[tmpRes] = i;
 
@@ -188,7 +187,7 @@ public class AEShelper {
 	// RC[i] = '02' * RC[i-1] = x * RC[i-1] = x^{i-1} `mod` R(X)
 	RC[0] = g[0];
 	for(i=1; i<RCNUM; i++){
-		RC[i] =  g[25] * RC[i-1];
+		RC[i] = field.mult(g[25], RC[i-1]);
 	}
     }
     
@@ -337,7 +336,7 @@ public class AEShelper {
                 }
                 
                 /* XOR the output of the rcon operation with i to the first part (leftmost) only */
-                t[0] = (byte) field.add(t[0], RC[rconIteration++]);
+                t[0] = (byte) ((byte) field.add(t[0], RC[rconIteration++]) & 0xff);
 
                 if (debug) {
                     System.out.println("; after XOR with RC[" + NTLUtils.chex(RC[rconIteration - 1]) + "] = " + t[0] + " = " + NTLUtils.chex(t[0]));
@@ -355,7 +354,7 @@ public class AEShelper {
              * This becomes the next four bytes in the expanded key.
              */
             for (i = 0; i < 4; i++) {
-                roundKeys[currentSize] = (byte) field.add(roundKeys[currentSize - size], t[i]);
+                roundKeys[currentSize] = (byte) ((byte) field.add(roundKeys[currentSize - size], t[i]) & 0xff);
 
                 if (debug) {
                     System.out.println("t[" + i + "] = " + NTLUtils.chex(t[i]));
@@ -422,7 +421,7 @@ public class AEShelper {
         int i,j;
         for(i=0; i<State.ROWS; i++){
             for(j=0; j<State.COLS; j++){
-                state.set((byte) field.add(state.get(i, j), expandedKey[offset + j*4+i]), i, j);
+                state.set((byte) field.add(state.get(i, j), expandedKey[offset + j*4+i]) , i, j);
             }
         }
     }

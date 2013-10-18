@@ -660,7 +660,7 @@ public class Generator {
                 tmpMat = (GF2MatrixEx) IODM[0].getInv().rightMultiply(tmpMat);
                 // Encode 128-bit wide output to map result
                 for (j = 0; j < AES.BYTES; j++) {
-                    mapResult.set(NTLUtils.ColBinaryVectorToByte(tmpMat, 8 * j, 0), j);
+                    mapResult.set(NTLUtils.colBinaryVectorToByte(tmpMat, 8 * j, 0), j);
                 }
                 // Encode mapResult with out encoding of T1 table
                 iocoding_encode128x128(mapResult, mapResult, AESMap.getT1()[0][i].getCod(), false, io.getpCoding04x04(), null);
@@ -810,7 +810,7 @@ public class Generator {
                         tmpMat = (GF2MatrixEx) Lr_k[j].rightMultiply(tmpMat);
 
                         // convert back to byte value
-                        Lr_k_table[j][b] = NTLUtils.ColBinaryVectorToByte(tmpMat, 0, 0);
+                        Lr_k_table[j][b] = NTLUtils.colBinaryVectorToByte(tmpMat, 0, 0);
                     }
                 }
 
@@ -857,7 +857,7 @@ public class Generator {
                             NTLUtils.putByteAsColVector(tmpMat, (byte) tmpGF2E, 0, 0);
 
                             tmpMat = (GF2MatrixEx) eMB_L08x08[r - 1][idx].getInv().rightMultiply(tmpMat);
-                            tmpGF2E = NTLUtils.ColBinaryVectorToByte(tmpMat, 0, 0);
+                            tmpGF2E = NTLUtils.colBinaryVectorToByte(tmpMat, 0, 0);
                         }
 
                         //
@@ -928,7 +928,7 @@ public class Generator {
                             tmpMat2 = (GF2MatrixEx) IODM[1].getMb().rightMultiply(tmpMat2);
                             // Encode 128-bit wide output to map result
                             for (int jj = 0; jj < 16; jj++) {
-                                mapResult128.set(NTLUtils.ColBinaryVectorToByte(tmpMat2, jj * 8, 0), jj);
+                                mapResult128.set(NTLUtils.colBinaryVectorToByte(tmpMat2, jj * 8, 0), jj);
                             }
                             // Encode mapResult with out encoding of T1 table
                             iocoding_encode128x128(mapResult128, mapResult128, t1C[1][idx].getCod(), false, pCoding04x04, pCoding08x08);
@@ -996,10 +996,10 @@ public class Generator {
                         // Encode using L mixing bijection (another matrix multiplication)
                         // Map bytes from result via L bijections
                         mapResult = 0;
-                        mapResult |= Utils.byte2long(Lr_k_table[0][NTLUtils.ColBinaryVectorToByte(tmpMat, 8 * 0, 0)], 0);
-                        mapResult |= Utils.byte2long(Lr_k_table[1][NTLUtils.ColBinaryVectorToByte(tmpMat, 8 * 1, 0)], 1);
-                        mapResult |= Utils.byte2long(Lr_k_table[2][NTLUtils.ColBinaryVectorToByte(tmpMat, 8 * 2, 0)], 2);
-                        mapResult |= Utils.byte2long(Lr_k_table[3][NTLUtils.ColBinaryVectorToByte(tmpMat, 8 * 3, 0)], 3);
+                        mapResult |= Utils.byte2long(Lr_k_table[0][NTLUtils.colBinaryVectorToByte(tmpMat, 8 * 0, 0)], 0);
+                        mapResult |= Utils.byte2long(Lr_k_table[1][NTLUtils.colBinaryVectorToByte(tmpMat, 8 * 1, 0)], 1);
+                        mapResult |= Utils.byte2long(Lr_k_table[2][NTLUtils.colBinaryVectorToByte(tmpMat, 8 * 2, 0)], 2);
+                        mapResult |= Utils.byte2long(Lr_k_table[3][NTLUtils.colBinaryVectorToByte(tmpMat, 8 * 3, 0)], 3);
                         // Encode mapResult with out encoding
                         mapResult = iocoding_encode32x32(mapResult, t3C[r][idx].getCod(), false, pCoding04x04, pCoding08x08);
                         // Store result value to lookup table
