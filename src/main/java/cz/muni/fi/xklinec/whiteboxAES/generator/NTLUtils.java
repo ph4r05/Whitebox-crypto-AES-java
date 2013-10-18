@@ -90,7 +90,7 @@ public class NTLUtils {
      * @param j     column
      * @return 
      */
-    public static byte ColBinaryVectorToByte(GF2MatrixEx src, int i, int j){
+    public static byte ColBinaryVectorToByte(final GF2MatrixEx src, int i, int j){
         byte res = 0;
         for(int k=0; k<8; k++){
             res |= src.get(i+k, j)==0 ? 0 : 1<<k;
@@ -106,7 +106,7 @@ public class NTLUtils {
      * @param j     column
      * @return 
      */
-    public static byte RowBinaryVectorToByte(GF2MatrixEx src, int i, int j){
+    public static byte RowBinaryVectorToByte(final GF2MatrixEx src, int i, int j){
         byte res = 0;
         for(int k=0; k<8; k++){
             res |= src.get(i, j+k)==0 ? 0 : 1<<k;
@@ -138,6 +138,46 @@ public class NTLUtils {
     public static String chex(int n) {
         // call toUpperCase() if that's required
         return String.format("0x%02X", n);
+    }
+    
+    
+    /**
+     * Converts matrix consisting of GF2E elements to binary matrix from element
+     * representation, coding binary elements to columns. LSB is first in the
+     * row, what is consistent with GenericAES.
+     */
+    public static GF2MatrixEx GF2mMatrix_to_GF2Matrix_col(final GF2mMatrixEx src, int elemLen) {
+        int i, j, k, n = src.getNumRows(), m = src.getNumColumns();
+
+        GF2MatrixEx dst = new GF2MatrixEx(elemLen * n, m);
+        for (i = 0; i < n; i++) {
+            for (j = 0; j < m; j++) {
+                int curElem = src.get(i, j);
+                for (k = 0; k < elemLen; k++) {
+                    dst.set(i * elemLen + k, j, (curElem >>> k) & 0x1); //k <= xdeg ? curX[k] : 0);
+                }
+            }
+        }
+
+        return dst;
+    }
+    
+    /**
+     * Converts column of 32 binary values to W32b value
+     * @param src
+     * @param row
+     * @param col
+     * @return 
+     */
+    public static long GF2Matrix_to_long(final GF2MatrixEx src, int row, int col){
+        //assert((src.NumRows()) < (row*8));
+        //assert((src.NumCols()) < col);
+        long dst = 0;
+        dst |= Utils.byte2long(ColBinaryVectorToByte(src, row+8*0, col), 0);
+        dst |= Utils.byte2long(ColBinaryVectorToByte(src, row+8*1, col), 1);
+        dst |= Utils.byte2long(ColBinaryVectorToByte(src, row+8*2, col), 2);
+        dst |= Utils.byte2long(ColBinaryVectorToByte(src, row+8*3, col), 3);
+        return dst;
     }
 
 }

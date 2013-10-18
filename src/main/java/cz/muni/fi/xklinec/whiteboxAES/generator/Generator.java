@@ -4,12 +4,18 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES.generator;
 
+import com.sun.crypto.provider.AESCipher;
 import cz.muni.fi.xklinec.whiteboxAES.AES;
 import cz.muni.fi.xklinec.whiteboxAES.State;
+import cz.muni.fi.xklinec.whiteboxAES.T1Box;
+import cz.muni.fi.xklinec.whiteboxAES.T2Box;
+import cz.muni.fi.xklinec.whiteboxAES.T3Box;
 import cz.muni.fi.xklinec.whiteboxAES.Utils;
+import cz.muni.fi.xklinec.whiteboxAES.W32b;
 import cz.muni.fi.xklinec.whiteboxAES.XORCascade;
 import cz.muni.fi.xklinec.whiteboxAES.XORCascadeState;
 import java.security.SecureRandom;
+import org.bouncycastle.pqc.math.linearalgebra.GF2mField;
 
 /**
  *
@@ -55,6 +61,24 @@ public class Generator {
     
     // whole ExtEncoding will be identity
     public static final int WBAESGEN_EXTGEN_ID = (WBAESGEN_EXTGEN_fCID | WBAESGEN_EXTGEN_lCID | WBAESGEN_EXTGEN_IDMID | WBAESGEN_EXTGEN_ODMID);
+    
+    public static final int shiftRowsLBijection[] = {
+        0, 13, 10, 7,
+        4,  1, 14, 11,
+        8,  5,  2, 15,
+        12, 9,  6,  3
+    };
+    
+    public static final int shiftRowsLBijectionInv[] = {
+        0,  5, 10, 15,
+        4,  9, 14,  3,
+        8, 13,  2,  7,
+       12,  1,  6, 11
+    };
+    
+    public static int nextTbox(int idx, boolean encrypt){
+        return encrypt ? shiftRowsLBijection[idx] : shiftRowsLBijectionInv[idx];
+    }
     
     //
     //  HIGHLOW, DEFINE TWO 4-BITS CODING FOR 8-BITS ARGUMENT
@@ -688,6 +712,13 @@ public class Generator {
         xorMap[1].generateTables(xor[1], this);
     }
     
+    /**
+     * Generate whitebox AES tables.
+     * @param encrypt
+     * @param key
+     * @param keySize
+     * @param ex 
+     */
     public void generate(boolean encrypt, byte[] key, int keySize, ExternalBijections ex){
         AESh   = new AEShelper();
         AESi   = new AES();
@@ -703,6 +734,7 @@ public class Generator {
         
         System.out.println("AES initialization");
         AESh.build(encrypt);
+        final GF2mField field = AESh.getField();
         
         // Create coding map. This step is always constant for each AES
         // but can be modified during debuging new features (enable/disable bijections).
@@ -729,15 +761,254 @@ public class Generator {
 	
         // Generate round keys
         System.out.println("Computing key schedule ");
-        AESh.keySchedule(key, keySize, debug);
+        byte[] keySchedule = AESh.keySchedule(key, keySize, debug);
         
         // Generate all XOR cascades
         System.out.println("Generating all 32bit XOR tables");
         this.generateXorCascades();
         this.generateXorStateCascades();
         
-        // generate cipher based 
+        // Generate cipher based tables
+        int i,j,k,b;
+        // pre-load bijections
+        final LinearBijection[][] eMB_L08x08 = io.getMB_L08x08();
+        final LinearBijection[][] eMB_MB32x32 = io.getMB_MB32x32();
+        final GTBox8to128[][] t1C = AESMap.getT1();
+        final GTBox8to32[][] t2C  = AESMap.getT2();
+        final GTBox8to32[][] t3C  = AESMap.getT3();        
+        final Bijection4x4[] pCoding04x04 = io.getpCoding04x04();
+        final Bijection8x8[] pCoding08x08 = null;
+        final LinearBijection[] IODM = extc.getIODM();
+        final Bijection4x4[][] lfC   = extc.getLfC();
         
+        T1Box[][] t1 = AESi.getT1();
+        T2Box[][] t2 = AESi.getT2();
+        T3Box[][] t3 = AESi.getT3();
+        
+        // Precompute L lookup table, L_k stripes
+        byte Lr_k_table[][] = new byte[4][256];
+        GF2MatrixEx Lr_k[] = new GF2MatrixEx[4];
+
+        // Generate tables for AES
+        for (int r = 0; r < AES.ROUNDS; r++) {
+            System.out.println("Generating tables for round = " + (r + 1));
+
+            // Iterate by mix cols/sections/dual AES-es
+            for (i = 0; i < State.COLS; i++) {
+
+                //
+                // Build L lookup table from L_k stripes using shiftRowsLBijection (Lr_k is just simplification for indexes)
+                // Now we are determining Lbox that will be used in next round.
+                // Also pre-compute lookup tables by matrix multiplication
+                for (j = 0; r < (AES.ROUNDS - 1) && j < State.COLS; j++) {
+                    Lr_k[j] = eMB_L08x08[r][nextTbox(i * State.COLS + j, encrypt)].getMb();
+                    for (b = 0; b < 256; b++) {
+                        GF2MatrixEx tmpMat = new GF2MatrixEx(8, 1);
+                        NTLUtils.putByteAsColVector(tmpMat, (byte) b, 0, 0);
+
+                        // multiply with 8x8 mixing bijection to obtain transformed value
+                        tmpMat = (GF2MatrixEx) Lr_k[j].rightMultiply(tmpMat);
+
+                        // convert back to byte value
+                        Lr_k_table[j][b] = NTLUtils.ColBinaryVectorToByte(tmpMat, 0, 0);
+                    }
+                }
+
+                //
+                // T table construction (Type2, if r=last one, then T1); j iterates over rows
+                //
+                for (j = 0; j < State.ROWS; j++) {
+                    final int idx = j * State.COLS + i; // index to state array, iterating by cols;
+
+                    System.out.println("T[" + r + "][" + i + "][" + j + "] key = 16*" + r
+                            + " + " + ((int) AES.shift(j * 4 + i, encrypt))
+                            + " = " + (keySchedule[16 * r + AES.shift(j * 4 + i, encrypt)])
+                            + "; idx=" + idx);
+
+                    // Build tables - for each byte
+                    for (b = 0; b < 256; b++) {
+                        int tmpGF2E;
+                        long mapResult;
+                        GF2MatrixEx mPreMB;
+                        GF2mMatrixEx mcres;
+                        int bb = b;
+
+                        // In the first round we apply codings from T1 tables.
+                        // Decode input with IO coding
+                        // For the last round, INPUT coding is for T1 box, otherwise for T2 box
+                        if (r < (AES.ROUNDS - 1)) {
+                            bb = iocoding_encode08x08((byte) bb, t2C[r][idx].getCod().IC, true, pCoding04x04, pCoding08x08);
+                        } else {
+                            bb = iocoding_encode08x08((byte) bb, t1C[r][idx].getCod().IC, true, pCoding04x04, pCoding08x08);
+                        }
+
+                        tmpGF2E = bb;
+
+                        //
+                        // Mixing bijection - removes effect induced in previous round (inversion here)
+                        // Note: for DualAES, data from prev round comes here in prev Dual AES encoding, with applied bijection
+                        // on them. Reversal = apply inverse of mixing bijection, undo prev Dual AES, do cur Dual AES
+                        // Scheme: Tapply_cur( TapplyInv_prev( L^{-1}_{r-1}(x) ) )
+                        //
+                        // Implementation: matrix multiplication in GF2.
+                        // Inversion to transformation used in previous round in T3 box (so skip this in first round).
+                        if (r > 0) {
+                            GF2MatrixEx tmpMat = new GF2MatrixEx(8, 1);
+                            NTLUtils.putByteAsColVector(tmpMat, (byte) tmpGF2E, 0, 0);
+
+                            tmpMat = (GF2MatrixEx) eMB_L08x08[r - 1][idx].getInv().rightMultiply(tmpMat);
+                            tmpGF2E = NTLUtils.ColBinaryVectorToByte(tmpMat, 0, 0);
+                        }
+
+                        //
+                        // Encryption scenario:
+                        // Build T_i box by composing with round key
+                        //
+                        // White box implementation:
+                        // shiftRows(state)
+                        // addRoundKey(state, shiftRows(ApplyT(K_{r-1}))) when indexing rounds from 1 and key from 0
+                        //   K_{r-1} is AES key for default AES,
+                        //   apply = linear transformation (multiplication by matrix T from dual AES) for changing default AES to dual AES.
+                        //
+                        // Rewritten to form:
+                        // shiftRows(state)
+                        // addRoundKey(state, ApplyT(shiftRows(K_r)))
+                        //
+                        // K_{r}  [x][y] = keySchedule[r][i] [16*(r)   + x*4 + y]
+                        // in this round we want to work with AES from same dual AES, thus we are choosing
+                        // keySchedule[r][i]. Also we have to take effect of ShiftRows() into account, thus apply
+                        // ShiftRows() transformation on key indexes.
+                        //
+                        // Implementation in one section (i) corresponds to one column (0,5,10,15) are indexes taken
+                        // for computation in one section in WBAES. Inside section (column) we are iterating over
+                        // rows (j). Key is serialized by rows.
+                        if (encrypt) {
+                            int tmpKey = keySchedule[16 * r + State.transpose(AES.shift(idx, encrypt))];
+                            tmpGF2E = field.add(tmpGF2E, tmpKey);
+                        } else {
+                            if (r == 0) {
+                                // Decryption & first round => add k_10 to state.
+                                // Same logic applies here
+                                // AddRoundKey(State, k_10)  | -> InvShiftRows(State)
+                                // InvShiftRows(State)       | -> AddRoundKey(State, InvShiftRows(k_10))
+                                int tmpKey = keySchedule[16 * AES.ROUNDS + State.transpose(AES.shift(idx, encrypt))];
+                                tmpGF2E = field.add(tmpGF2E, tmpKey);
+                            }
+                        }
+
+
+                        // SBox transformation with dedicated AES for this round and section
+                        // Encryption: ByteSub
+                        // Decryption: ByteSubInv
+                        int tmpE = encrypt ? AESh.ByteSub(tmpGF2E) : AESh.ByteSubInv(tmpGF2E);
+
+                        // Decryption case:
+                        // T(x) = Sbox(x) + k
+                        if (!encrypt) {
+                            tmpE = field.add(tmpE, keySchedule[16 * (AES.ROUNDS - r - 1) + State.transpose(idx)]);
+                        }
+
+                        // If we are in last round we also have to add k_10, not affected by ShiftRows()
+                        // And more importantly, build T1
+                        if (r == AES.ROUNDS - 1) {
+                            // Adding last encryption key (k_10) by special way is performed only in encryption
+                            if (encrypt) {
+                                tmpE = field.add(tmpE, keySchedule[16 * (r + 1) + State.transpose(idx)]);
+                            }
+
+                            // Now we use output encoding G and quit, no MixColumn or Mixing bijections here.
+                            State mapResult128 = new State();
+                            bb = tmpE;
+
+                            // Transform bb to matrix, to perform mixing bijection operation (matrix multiplication)
+                            GF2MatrixEx tmpMat2 = new GF2MatrixEx(128, 1);
+                            // builds binary matrix [0 0 bb 0 0 0 0 0 0 0 0 0 0 0 0 0], if curByte==2
+                            NTLUtils.putByteAsColVector(tmpMat2, (byte) bb, (i * State.COLS + j) * 8, 0);
+                            // Build MB multiplication result
+                            tmpMat2 = (GF2MatrixEx) IODM[1].getMb().rightMultiply(tmpMat2);
+                            // Encode 128-bit wide output to map result
+                            for (int jj = 0; jj < 16; jj++) {
+                                mapResult128.set(NTLUtils.ColBinaryVectorToByte(tmpMat2, jj * 8, 0), jj);
+                            }
+                            // Encode mapResult with out encoding of T1 table
+                            iocoding_encode128x128(mapResult128, mapResult128, t1C[1][idx].getCod(), false, pCoding04x04, pCoding08x08);
+                            // Store result value to lookup table
+                            t1[1][idx].getTbl()[b].setState(mapResult128.getState());
+                            continue;
+                        }
+
+                        //
+                        // MixColumn, Mixing bijection part
+                        //	only in case 1..9 round
+
+                        // Build [0 tmpE 0 0]^T stripe where tmpE is in j-th position
+                        GF2mMatrixEx zj = new GF2mMatrixEx(field, 4, 1);
+                        zj.set(j, 0, tmpE);
+
+                        // Multiply with MC matrix from our AES dedicated for this round, only in 1..9 rounds (not in last round)
+                        if (encrypt) {
+                            mcres = r < (AES.ROUNDS - 1) ? AESh.getMixColMat().rightMultiply(zj) : zj;
+                        } else {
+                            mcres = r < (AES.ROUNDS - 1) ? AESh.getMixColInvMat().rightMultiply(zj) : zj;
+                        }
+
+                        // Apply 32x32 Mixing bijection, mPreMB is initialized to GF2MatrixEx with 32x1 dimensions,
+                        // GF2E values are encoded to binary column vectors
+                        mPreMB = NTLUtils.GF2mMatrix_to_GF2Matrix_col(mcres, 8);
+                        mPreMB = (GF2MatrixEx) eMB_MB32x32[r][i].getMb().rightMultiply(mPreMB);
+
+                        //
+                        // TESTING - multiply by inversion
+                        //
+                        // Convert transformed vector back to values
+                        mapResult = NTLUtils.GF2Matrix_to_long(mPreMB, 0, 0);
+
+                        // Encode mapResult with out encoding
+                        mapResult = iocoding_encode32x32(mapResult, t2C[r][idx].getCod(), false, pCoding04x04, pCoding08x08);
+                        // Store result value to lookup table
+                        t2[r][idx].getTbl()[b] = mapResult;
+                    }
+                }
+
+                // In final round there are no more XOR and T3 boxes
+                if (r == AES.ROUNDS - 1) {
+                    continue;
+                }
+
+                //
+                // B table construction (Type3) - just mixing bijections and L strip
+                //
+                for (j = 0; j < State.COLS; j++) {
+                    final int idx = j * State.COLS + i; // index to state array, iterating by cols;
+
+                    // Build tables - for each byte
+                    for (b = 0; b < 256; b++) {
+                        long mapResult;
+                        int bb = b;
+                        // Decode with IO encoding
+                        bb = iocoding_encode08x08((byte) b, t3C[r][idx].getCod().IC, true, pCoding04x04, pCoding08x08);
+                        // Transform bb to matrix, to perform mixing bijection operation (matrix multiplication)
+                        GF2MatrixEx tmpMat = new GF2MatrixEx(32, 1);
+                        // builds binary matrix [0 0 bb 0], if j==2
+                        NTLUtils.putByteAsColVector(tmpMat, (byte) bb, j * 8, 0);
+                        // Build MB multiplication result
+                        tmpMat = (GF2MatrixEx) eMB_MB32x32[r][i].getInv().rightMultiply(tmpMat);
+                        // Encode using L mixing bijection (another matrix multiplication)
+                        // Map bytes from result via L bijections
+                        mapResult = 0;
+                        mapResult |= Utils.byte2long(Lr_k_table[0][NTLUtils.ColBinaryVectorToByte(tmpMat, 8 * 0, 0)], 0);
+                        mapResult |= Utils.byte2long(Lr_k_table[1][NTLUtils.ColBinaryVectorToByte(tmpMat, 8 * 1, 0)], 1);
+                        mapResult |= Utils.byte2long(Lr_k_table[2][NTLUtils.ColBinaryVectorToByte(tmpMat, 8 * 2, 0)], 2);
+                        mapResult |= Utils.byte2long(Lr_k_table[3][NTLUtils.ColBinaryVectorToByte(tmpMat, 8 * 3, 0)], 3);
+                        // Encode mapResult with out encoding
+                        mapResult = iocoding_encode32x32(mapResult, t3C[r][idx].getCod(), false, pCoding04x04, pCoding08x08);
+                        // Store result value to lookup table
+                        t3[r][idx].getTbl()[b] = mapResult;
+                        // cout << "T3["<<r<<"]["<<i<<"]["<<j<<"]["<<b<<"] = "; dumpW32b(mapResult);
+                    }
+                }
+            }
+        }
     }
 
     public AES getAESi() {

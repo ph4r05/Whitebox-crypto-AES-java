@@ -14,21 +14,7 @@ public class AESCodingMap {					      // 15*4*8, used with T1 tables
     public static final int BYTES  = AES.BYTES;
     public static final int ROUNDS = AES.ROUNDS;
     public static final int T1BOXES = AES.T1BOXES;
-    public static final int T1Boxes = AES.T1Boxes;
-    public static final int shiftRowsLBijection[] = {
-        0, 13, 10, 7,
-        4,  1, 14, 11,
-        8,  5,  2, 15,
-        12, 9,  6,  3
-    };
-    
-    public static final int shiftRowsLBijectionInv[] = {
-        0,  5, 10, 15,
-        4,  9, 14,  3,
-        8, 13,  2,  7,
-       12,  1,  6, 11
-    };
-    
+    public static final int T1Boxes = AES.T1Boxes;   
     
     private GTBox8to128[][]    t1        = null;
     private GXORCascadeState[] xorState  = null;
