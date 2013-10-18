@@ -570,7 +570,7 @@ public class Generator {
 
     public int generate4X4Bijection(Bijection4x4 tbl, boolean identity) {
         if (!identity) {
-            return GenUtils.generateRandomBijection(tbl.coding, tbl.invCoding, MB_8x8, true, rand);
+            return GenUtils.generateRandomBijection(tbl.coding, tbl.invCoding, 16, true, rand);
         } else {
             byte i;
             for (i = 0; i < 16; i++) {
