@@ -140,6 +140,63 @@ public class NTLUtils {
         return String.format("0x%02X", n);
     }
     
+    /**
+     * Returns true if the matrix has unit form (i.e., ones on main diagonal,
+     * zeros elsewhere).
+     * 
+     * @param m
+     * @return 
+     */
+    public static boolean isUnit(GF2MatrixEx m){
+        final int rows = m.getNumRows();
+        final int cols = m.getNumColumns();
+        if (rows!=cols){
+            return false;
+        }
+        
+        return isNormalizedRank(m, rows);
+    }
+    
+    /**
+     * Returns true if matrix has normalized form of given rank
+     * @param m
+     * @param rank
+     * @return
+     */
+    public static boolean isNormalizedRank(GF2MatrixEx m, int rank){
+        // test resulting normal matrix for correct form
+        final int rows = m.getNumRows();
+        final int cols = m.getNumColumns();
+        
+        boolean matrixOK=true;
+        for(int i=0; i<rows; i++){
+            for(int j=0; j<cols; j++){
+                // test on zero outside of main diagonal
+                if (i!=j && m.isSet(i, j)) {
+                    matrixOK=false;
+                    break;
+                }
+
+                // test on ones on main diagonal
+                if (i==j){
+                    // test for one on main diagonal for rank
+                    if (i<rank && !m.isSet(i, j)){
+                        matrixOK=false;
+                        break;
+                    }
+
+                    // test for zero on main diagonal
+                    if (i>=rank && m.isSet(i, j)){
+                        matrixOK=false;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        return matrixOK;
+    }
+    
     
     /**
      * Converts matrix consisting of GF2E elements to binary matrix from element

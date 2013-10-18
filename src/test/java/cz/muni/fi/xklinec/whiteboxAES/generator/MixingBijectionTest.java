@@ -85,33 +85,7 @@ public class MixingBijectionTest extends TestCase {
             assertEquals(rank == N ? 1 : 0, h.getDetetrminant());
             
             // test resulting normal matrix for correct form
-            boolean matrixOK=true;
-            for(int i=0; i<N; i++){
-                for(int j=0; j<N; j++){
-                    // test on zero outside of main diagonal
-                    if (i!=j && PAQ.isSet(i, j)) {
-                        matrixOK=false;
-                        break;
-                    }
-                    
-                    // test on ones on main diagonal
-                    if (i==j){
-                        // test for one on main diagonal for rank
-                        if (i<rank && !PAQ.isSet(i, j)){
-                            matrixOK=false;
-                            break;
-                        }
-                        
-                        // test for zero on main diagonal
-                        if (i>=rank && PAQ.isSet(i, j)){
-                            matrixOK=false;
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            assertEquals("Normalized matrix has invalid form", true, matrixOK);
+            assertEquals("Normalized matrix has invalid form", true, NTLUtils.isNormalizedRank(PAQ, rank));
         }
     }
 

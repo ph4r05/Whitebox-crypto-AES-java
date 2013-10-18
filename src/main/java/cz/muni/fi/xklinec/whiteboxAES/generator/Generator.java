@@ -603,6 +603,9 @@ public class Generator {
      */
     public void generateExtEncoding(ExternalBijections extc, int flags){
 	int k;
+        
+        // Initialize memory if empty
+        extc.memoryAllocate();
 
 	// generate 8x8 bijections at first
 	for(k=0; k<2; k++){
