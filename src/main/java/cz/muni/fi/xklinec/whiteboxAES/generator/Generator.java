@@ -93,6 +93,11 @@ public class Generator {
     public static class Coding {
         public HighLow IC;  
         public HighLow OC;
+
+        public Coding() {
+            IC = new HighLow();
+            OC = new HighLow();
+        }
     }
 
     //
@@ -231,8 +236,8 @@ public class Generator {
         for(int i=0; i<cod.width; i++){
             cod.OC[(ofs)+i].type = COD_BITS_4;
             
-            assrt(cod.OC[(ofs)+i].H==UNASSIGNED_CODING); 
-            assrt(cod.OC[(ofs)+i].L==UNASSIGNED_CODING);
+            assrt(cod.OC[(ofs)+i].H==NO_CODING); 
+            assrt(cod.OC[(ofs)+i].L==NO_CODING);
             
             cod.OC[(ofs)+i].L = ++(idx);
             cod.OC[(ofs)+i].H = ++(idx);
@@ -268,7 +273,7 @@ public class Generator {
     //
     public static int ALLOCXORCoding(XORCODING xtb, int offset, int idx, int len) {
         for(int i=0; i<len; i++){
-            assrt(xtb.xtb[(offset)+i].OC.L==UNASSIGNED_CODING);
+            assrt(xtb.xtb[(offset)+i].OC.L==NO_CODING);
             
             xtb.xtb[(offset)+i].OC.type = COD_BITS_4;
             xtb.xtb[(offset)+i].OC.H    = UNUSED_CODING;
@@ -285,14 +290,20 @@ public class Generator {
     // mapping from one particular W32box we are using either HIGH or LOW parts. 
     //
     public static void CONNECT_W08x32_TO_XOR_EX(W08xZZCODING cod, XORCODING xtb, boolean HL, int offsetL, int offsetR) {
-        for (int i=0; i<8; i++){
-            assrt(HL ? xtb.xtb[(offsetL)+i].IC.H==UNASSIGNED_CODING : xtb.xtb[(offsetL)+i].IC.L==UNASSIGNED_CODING);
-            assrt(cod.OC[(offsetR)+i].H!=UNASSIGNED_CODING); 
+        // Connects 32 bit output to XOR encoding with 4bit width, thus 8 connections are needed.
+        for (int i=0; i<4; i++){
+            assrt(HL ? xtb.xtb[(offsetL)+2*i  ].IC.H==NO_CODING : xtb.xtb[(offsetL)+2*i  ].IC.L==NO_CODING);
+            assrt(HL ? xtb.xtb[(offsetL)+2*i+1].IC.H==NO_CODING : xtb.xtb[(offsetL)+2*i+1].IC.L==NO_CODING);
+            
+            assrt(cod.OC[(offsetR)+i].H!=NO_CODING && cod.OC[(offsetR)+i].H!=UNASSIGNED_CODING); 
+            assrt(cod.OC[(offsetR)+i].L!=NO_CODING && cod.OC[(offsetR)+i].L!=UNASSIGNED_CODING); 
             
             if (HL){
-                xtb.xtb[(offsetL)+i].IC.H = cod.OC[(offsetR)+i].H;
+                xtb.xtb[(offsetL)+2*i  ].IC.H = cod.OC[(offsetR)+i].H;
+                xtb.xtb[(offsetL)+2*i+1].IC.H = cod.OC[(offsetR)+i].L;
             } else {
-                xtb.xtb[(offsetL)+i].IC.L = cod.OC[(offsetR)+i].H;
+                xtb.xtb[(offsetL)+2*i  ].IC.L = cod.OC[(offsetR)+i].H;
+                xtb.xtb[(offsetL)+2*i+1].IC.L = cod.OC[(offsetR)+i].L;
             }
         }
     }
@@ -331,8 +342,8 @@ public class Generator {
     // This macro accepts XOR tables 32bit wide.
     public static void CONNECT_XOR_TO_XOR(XORCODING xtb1, int offset1, XORCODING xtb3, int offset3, boolean HL) {
         for (int i = 0; i < 8; i++) {
-            assrt(HL ? xtb3.xtb[(offset3) + i].IC.H == UNASSIGNED_CODING : xtb3.xtb[(offset3) + i].IC.L == UNASSIGNED_CODING);
-            assrt(xtb1.xtb[(offset1) + i].OC.L != UNASSIGNED_CODING);
+            assrt(HL ? xtb3.xtb[(offset3) + i].IC.H == NO_CODING : xtb3.xtb[(offset3) + i].IC.L == NO_CODING);
+            assrt(xtb1.xtb[(offset1) + i].OC.L != NO_CODING && xtb1.xtb[(offset1) + i].OC.L != UNASSIGNED_CODING);
 
             if (HL) {
                 xtb3.xtb[(offset3) + i].IC.H = xtb1.xtb[(offset1) + i].OC.L;
@@ -370,10 +381,10 @@ public class Generator {
     //
     public static void CONNECT_XOR_TO_W08x32(XORCODING xtb, int offset, W08xZZCODING cod) {
         cod.IC.type = xtb.xtb[(offset)+0].OC.type;                                    
-        assrt(cod.IC.H==UNASSIGNED_CODING);
-        assrt(xtb.xtb[(offset)+0].OC.L!=UNASSIGNED_CODING); 
-        assrt(cod.IC.L==UNASSIGNED_CODING);
-        assrt(xtb.xtb[(offset)+1].OC.L!=UNASSIGNED_CODING); 
+        assrt(cod.IC.H==NO_CODING);
+        assrt(xtb.xtb[(offset)+0].OC.L!=UNASSIGNED_CODING && xtb.xtb[(offset)+0].OC.L!=NO_CODING); 
+        assrt(cod.IC.L==NO_CODING);
+        assrt(xtb.xtb[(offset)+1].OC.L!=UNASSIGNED_CODING && xtb.xtb[(offset)+1].OC.L!=NO_CODING); 
 
         cod.IC.H = xtb.xtb[(offset)+0].OC.L;                                          
         cod.IC.L = xtb.xtb[(offset)+1].OC.L;                                          

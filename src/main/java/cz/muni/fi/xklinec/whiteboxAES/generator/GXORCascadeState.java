@@ -4,9 +4,7 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES.generator;
 
-import cz.muni.fi.xklinec.whiteboxAES.XORBox;
 import cz.muni.fi.xklinec.whiteboxAES.XORBoxState;
-import cz.muni.fi.xklinec.whiteboxAES.XORCascade;
 import cz.muni.fi.xklinec.whiteboxAES.XORCascadeState;
 import cz.muni.fi.xklinec.whiteboxAES.generator.Generator.XORCODING;
 
@@ -67,10 +65,6 @@ public class GXORCascadeState implements IOEncoding{
      * 
      */
     public final void connectInternal(){        
-        // Connect output from two XOR boxes to input of one XOR box
-        Generator.CONNECT_XOR_TO_XOR_H(cod[0], 0, cod[3], 0);
-        Generator.CONNECT_XOR_TO_XOR_L(cod[1], 0, cod[3], 0);
-        
          // offset in x[] for current stage
         int XORoffset = 0;  
         // j is XOR stage number

@@ -99,7 +99,9 @@ public class AESCodingMap {					      // 15*4*8, used with T1 tables
             
             // Connecting part
             xorState[r].connectInternal();
-            t1[r][i].connectOut(xorState[r], i);
+            for(i=0; i<BYTES; i++){
+                t1[r][i].connectOut(xorState[r], i);
+            }
         }
         
         // Now connect XOR3 tables form R=0 (sums T1 input table) to input of T2 tables

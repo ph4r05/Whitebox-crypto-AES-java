@@ -4,9 +4,9 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES.generator;
 
+import cz.muni.fi.xklinec.whiteboxAES.AES;
 import cz.muni.fi.xklinec.whiteboxAES.generator.Generator.Coding;
 import junit.framework.TestCase;
-import org.bouncycastle.pqc.math.linearalgebra.Matrix;
 
 /**
  *
@@ -44,10 +44,8 @@ public class GeneratorTest extends TestCase {
     public void testGenerateExtEncoding() {
         System.out.println("generateExtEncoding");
         ExternalBijections extc = new ExternalBijections();
-        int flags = 0;
         Generator instance = new Generator();
-        instance.generateExtEncoding(extc, flags);
-        // TODO review the generated test code and remove the default call to fail.
+        instance.generateExtEncoding(extc, 0);
         
         //
         // Test invertibility of matrix
@@ -57,6 +55,8 @@ public class GeneratorTest extends TestCase {
         for(int i=0; i<ln; i++){
             GF2MatrixEx r1 = (GF2MatrixEx) IODM[i].getMb().rightMultiply(IODM[i].getInv());
             assertEquals("Matrix should be unit", true, NTLUtils.isUnit(r1));
+            assertEquals("Matrix size mismatch", AES.BYTES*8, IODM[i].getMb().getNumRows());
+            assertEquals("Matrix size mismatch", AES.BYTES*8, IODM[i].getMb().getNumColumns());
         }
         
         //
@@ -80,10 +80,19 @@ public class GeneratorTest extends TestCase {
      */
     public void testGenerateT1Tables() {
         System.out.println("generateT1Tables");
-        Generator instance = new Generator();
-        instance.generateT1Tables();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+        Generator g = new Generator();
+        
+        // Initialize internal
+        g.initInternal();
+        
+        // External encoding is needed, at least some, generate identities
+        ExternalBijections extc = new ExternalBijections();
+        g.generateExtEncoding(extc, Generator.WBAESGEN_EXTGEN_ID);
+        g.setExtc(extc);
+        
+        // 
+        g.generateT1Tables();
+        
     }
 
     /**
