@@ -167,7 +167,7 @@ public class AESCodingMap {					      // 15*4*8, used with T1 tables
                     xor[r][xorCol2].connectOut(t2[r+1][shiftOp(i)], i % State.COLS);
                 } else {
                     // Connect result XOR layer 4 to T1 boxes in last round; r==8
-                    xor[r][xorCol2].connectOut(t1[r+1][shiftOp(i)], i % State.COLS);
+                    xor[r][xorCol2].connectOut(t1[1][shiftOp(i)], i % State.COLS);
                 }
             }
 	}

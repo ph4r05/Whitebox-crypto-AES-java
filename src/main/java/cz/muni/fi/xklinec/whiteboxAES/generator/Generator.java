@@ -82,9 +82,9 @@ public class Generator {
     //  HIGHLOW, DEFINE TWO 4-BITS CODING FOR 8-BITS ARGUMENT
     //
     public static class HighLow {
-        public byte type;   // CODING SIZE TYPE. CURRENTLY DEFINED COD_BITS_4 & COD_BITS_8   
-        public int H;       // HIGH 4-BITS CODING (H == L for COD_BITS_8)
-        public int L;       // LOW 4-BITS CODING
+        public byte type = COD_BITS_UNASSIGNED;   // CODING SIZE TYPE. CURRENTLY DEFINED COD_BITS_4 & COD_BITS_8   
+        public int H = NO_CODING;       // HIGH 4-BITS CODING (H == L for COD_BITS_8)
+        public int L = NO_CODING;       // LOW 4-BITS CODING
     }
     
     //
@@ -236,6 +236,7 @@ public class Generator {
         for(int i=0; i<cod.width; i++){
             cod.OC[(ofs)+i].type = COD_BITS_4;
             
+            // To avoid overwriting already allocated encodings.
             assrt(cod.OC[(ofs)+i].H==NO_CODING); 
             assrt(cod.OC[(ofs)+i].L==NO_CODING);
             
@@ -273,6 +274,7 @@ public class Generator {
     //
     public static int ALLOCXORCoding(XORCODING xtb, int offset, int idx, int len) {
         for(int i=0; i<len; i++){
+            // To avoid overwriting already allocated encodings.
             assrt(xtb.xtb[(offset)+i].OC.L==NO_CODING);
             
             xtb.xtb[(offset)+i].OC.type = COD_BITS_4;
@@ -292,9 +294,10 @@ public class Generator {
     public static void CONNECT_W08x32_TO_XOR_EX(W08xZZCODING cod, XORCODING xtb, boolean HL, int offsetL, int offsetR) {
         // Connects 32 bit output to XOR encoding with 4bit width, thus 8 connections are needed.
         for (int i=0; i<4; i++){
+            // To avoid overwriting already allocated encodings.
             assrt(HL ? xtb.xtb[(offsetL)+2*i  ].IC.H==NO_CODING : xtb.xtb[(offsetL)+2*i  ].IC.L==NO_CODING);
             assrt(HL ? xtb.xtb[(offsetL)+2*i+1].IC.H==NO_CODING : xtb.xtb[(offsetL)+2*i+1].IC.L==NO_CODING);
-            
+            // To avoid assigning empty/invalid encoding.
             assrt(cod.OC[(offsetR)+i].H!=NO_CODING && cod.OC[(offsetR)+i].H!=UNASSIGNED_CODING); 
             assrt(cod.OC[(offsetR)+i].L!=NO_CODING && cod.OC[(offsetR)+i].L!=UNASSIGNED_CODING); 
             
@@ -342,7 +345,9 @@ public class Generator {
     // This macro accepts XOR tables 32bit wide.
     public static void CONNECT_XOR_TO_XOR(XORCODING xtb1, int offset1, XORCODING xtb3, int offset3, boolean HL) {
         for (int i = 0; i < 8; i++) {
+            // To avoid overwriting already connected encoding.
             assrt(HL ? xtb3.xtb[(offset3) + i].IC.H == NO_CODING : xtb3.xtb[(offset3) + i].IC.L == NO_CODING);
+            // To avoid assigning empty encodings.
             assrt(xtb1.xtb[(offset1) + i].OC.L != NO_CODING && xtb1.xtb[(offset1) + i].OC.L != UNASSIGNED_CODING);
 
             if (HL) {
@@ -380,7 +385,13 @@ public class Generator {
     // Connects 8bit output from 2 consecutive XOR tables to 8b input of W08xZZ table
     //
     public static void CONNECT_XOR_TO_W08x32(XORCODING xtb, int offset, W08xZZCODING cod) {
-        cod.IC.type = xtb.xtb[(offset)+0].OC.type;                                    
+        cod.IC.type = xtb.xtb[(offset)+0].OC.type;     
+        
+        // Asserts checks if someone is not trying to overwrite already allocated
+        // mappings on inputs (INPUT). If there is already some coding, no
+        // re-assign is allowed.
+        // It is also checked if output mapping has some meaningful coding
+        // if somebody is trying to assing it somewhere.
         assrt(cod.IC.H==NO_CODING);
         assrt(xtb.xtb[(offset)+0].OC.L!=UNASSIGNED_CODING && xtb.xtb[(offset)+0].OC.L!=NO_CODING); 
         assrt(cod.IC.L==NO_CODING);
