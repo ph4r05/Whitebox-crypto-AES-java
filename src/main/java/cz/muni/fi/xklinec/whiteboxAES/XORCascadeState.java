@@ -34,6 +34,9 @@ public class XORCascadeState implements Serializable{
 
     public XORCascadeState() {
         x = new XORBoxState[BOXES];
+        for(int i=0; i<BOXES; i++){
+            x[i] = new XORBoxState();
+        }
     }
     
     public XORCascadeState(XORBoxState[] xtbl) {

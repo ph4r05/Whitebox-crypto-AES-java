@@ -198,6 +198,14 @@ public class Generator {
         return (((a) % (m)) < 0 ? ((a) % (m)) + (m) : (a) % (m));
     }
     
+    public static int posIdx(byte x){
+        return x & 0xff;
+    }
+    
+    public static int posIdx(int x){
+        return x & 0xffffffff;
+    }
+    
     /**
      * HI(xxxxyyyy) = 0000xxxx
      * @param x
@@ -412,6 +420,12 @@ public class Generator {
      */
     public static byte iocoding_encode08x08(byte src, HighLow hl, boolean inverse, Bijection4x4[] tbl4, Bijection8x8[] tbl8){
         if (hl.type == COD_BITS_4){
+            if(tbl4==null 
+                    || (hl.H >= 0 && (tbl4.length <= hl.H || tbl4[hl.H]==null)) 
+                    || (hl.L >= 0 && (tbl4.length <= hl.L || tbl4[hl.L]==null))){
+                throw new NullPointerException("Illegal allocation");
+            } 
+            
             return inverse ?
                   HILO(
                 	USE_IDENTITY_CODING(hl.H) ? HI(src) : tbl4[hl.H].invCoding[HI(src)],
@@ -500,9 +514,6 @@ public class Generator {
     private boolean debug = false;
     private SecureRandom rand = new SecureRandom();
     
-    private boolean useDualAESARelationsIdentity=false;
-    private boolean useDualAESIdentity=false;
-    private boolean useDualAESSimpeAlternate=false;
     private boolean useIO04x04Identity=false;
     private boolean useIO08x08Identity=true;
     private boolean useMB08x08Identity=false;
@@ -526,7 +537,7 @@ public class Generator {
         LinearBijection[][] MB32x32 = io.getMB_MB32x32();
 
 	// Generate all required 8x8 mixing bijections.
-	       for (r = 0; r < L08x08rounds; r++) {
+	for (r = 0; r < L08x08rounds; r++) {
             for (i = 0; i < MB_CNT_08x08_PER_ROUND; i++) {
                 if (!MB08x08Identity) {
                     final GF2MatrixEx m    = MixingBijection.generateMixingBijection(8, 4, rand, debug);
@@ -565,7 +576,7 @@ public class Generator {
      * @return 
      */
     public int generateMixingBijections(boolean identity){
-        return generateMixingBijections(io, MB_8x8, MB_32x32, identity, identity);
+        return generateMixingBijections(io, MB_CNT_08x08_ROUNDS, MB_CNT_32x32_ROUNDS, identity, identity);
     }
     
     public int generate4X4Bijections(Bijection4x4[] tbl, int size, boolean identity){
@@ -776,15 +787,15 @@ public class Generator {
         AESMap.getXorState()[1].setExternalOut(extc.getLfC()[1]);
         
         // Allocate space for IO bijections
-        io.alloc04x04(AESMap.getIdx());
+        io.alloc04x04(AESMap.getIdx()+1);
         
         // Generate 4x4 IO bijections
         System.out.println("Generating IO bijections...");
-        generate4X4Bijections(io.getpCoding04x04(), AESMap.getIdx(), useIO04x04Identity);
+        generate4X4Bijections(io.getpCoding04x04(), AESMap.getIdx()+1, useIO04x04Identity);
         
         // Generate mixing bijections
         System.out.println("Generating mixing bijections...");
-        generateMixingBijections(io, MB_8x8, MB_32x32, useMB08x08Identity, useMB32x32Identity);
+        generateMixingBijections(io, MB_CNT_08x08_ROUNDS, MB_CNT_32x32_ROUNDS, useMB08x08Identity, useMB32x32Identity);
         
         // Init T1[0] tables - for the first round
 	System.out.println("Generating first round tables (T1) ");
@@ -817,8 +828,8 @@ public class Generator {
         T3Box[][] t3 = AESi.getT3();
         
         // Precompute L lookup table, L_k stripes
-        byte Lr_k_table[][] = new byte[4][256];
-        GF2MatrixEx Lr_k[] = new GF2MatrixEx[4];
+        byte Lr_k_table[][] = new byte[State.COLS][256];
+        GF2MatrixEx Lr_k[] = new GF2MatrixEx[State.COLS];
 
         // Generate tables for AES
         for (int r = 0; r < AES.ROUNDS; r++) {
@@ -850,10 +861,10 @@ public class Generator {
                 //
                 for (j = 0; j < State.ROWS; j++) {
                     final int idx = j * State.COLS + i; // index to state array, iterating by cols;
-
+                    final int keyIdx = 16 * r + State.transpose(AES.shift(idx, encrypt));
                     System.out.println("T[" + r + "][" + i + "][" + j + "] key = 16*" + r
-                            + " + " + ((int) AES.shift(j * 4 + i, encrypt))
-                            + " = " + (keySchedule[16 * r + AES.shift(j * 4 + i, encrypt)])
+                            + " + " + ((int) State.transpose(AES.shift(idx, encrypt)))
+                            + " = " + String.format("0x%02X", posIdx(keySchedule[keyIdx]))
                             + "; idx=" + idx);
 
                     // Build tables - for each byte
@@ -870,7 +881,7 @@ public class Generator {
                         if (r < (AES.ROUNDS - 1)) {
                             bb = iocoding_encode08x08((byte) bb, t2C[r][idx].getCod().IC, true, pCoding04x04, pCoding08x08);
                         } else {
-                            bb = iocoding_encode08x08((byte) bb, t1C[r][idx].getCod().IC, true, pCoding04x04, pCoding08x08);
+                            bb = iocoding_encode08x08((byte) bb, t1C[1][idx].getCod().IC, true, pCoding04x04, pCoding08x08);
                         }
 
                         tmpGF2E = bb;
@@ -914,7 +925,7 @@ public class Generator {
                         // for computation in one section in WBAES. Inside section (column) we are iterating over
                         // rows (j). Key is serialized by rows.
                         if (encrypt) {
-                            int tmpKey = keySchedule[16 * r + State.transpose(AES.shift(idx, encrypt))];
+                            int tmpKey = keySchedule[keyIdx];
                             tmpGF2E = field.add(tmpGF2E & 0xff, tmpKey & 0xff) & 0xff;
                         } else {
                             if (r == 0) {
@@ -926,8 +937,7 @@ public class Generator {
                                 tmpGF2E = field.add(tmpGF2E & 0xff, tmpKey & 0xff) & 0xff;
                             }
                         }
-
-
+                        
                         // SBox transformation with dedicated AES for this round and section
                         // Encryption: ByteSub
                         // Decryption: ByteSubInv
@@ -971,7 +981,7 @@ public class Generator {
                         //
                         // MixColumn, Mixing bijection part
                         //	only in case 1..9 round
-
+                        
                         // Build [0 tmpE 0 0]^T stripe where tmpE is in j-th position
                         GF2mMatrixEx zj = new GF2mMatrixEx(field, 4, 1);
                         zj.set(j, 0, tmpE);
@@ -1027,19 +1037,27 @@ public class Generator {
                         // Encode using L mixing bijection (another matrix multiplication)
                         // Map bytes from result via L bijections
                         mapResult = 0;
-                        mapResult |= Utils.byte2long(Lr_k_table[0][NTLUtils.colBinaryVectorToByte(tmpMat, 8 * 0, 0)], 0);
-                        mapResult |= Utils.byte2long(Lr_k_table[1][NTLUtils.colBinaryVectorToByte(tmpMat, 8 * 1, 0)], 1);
-                        mapResult |= Utils.byte2long(Lr_k_table[2][NTLUtils.colBinaryVectorToByte(tmpMat, 8 * 2, 0)], 2);
-                        mapResult |= Utils.byte2long(Lr_k_table[3][NTLUtils.colBinaryVectorToByte(tmpMat, 8 * 3, 0)], 3);
+                        mapResult |= Utils.byte2long(Lr_k_table[0][posIdx(NTLUtils.colBinaryVectorToByte(tmpMat, 8 * 0, 0))], 0);
+                        mapResult |= Utils.byte2long(Lr_k_table[1][posIdx(NTLUtils.colBinaryVectorToByte(tmpMat, 8 * 1, 0))], 1);
+                        mapResult |= Utils.byte2long(Lr_k_table[2][posIdx(NTLUtils.colBinaryVectorToByte(tmpMat, 8 * 2, 0))], 2);
+                        mapResult |= Utils.byte2long(Lr_k_table[3][posIdx(NTLUtils.colBinaryVectorToByte(tmpMat, 8 * 3, 0))], 3);
                         // Encode mapResult with out encoding
                         mapResult = iocoding_encode32x32(mapResult, t3C[r][idx].getCod(), false, pCoding04x04, pCoding08x08);
                         // Store result value to lookup table
-                        t3[r][idx].getTbl()[b] = mapResult;
+                        t3[r][idx].getTbl()[posIdx(b)] = mapResult;
                         // cout << "T3["<<r<<"]["<<i<<"]["<<j<<"]["<<b<<"] = "; dumpW32b(mapResult);
                     }
                 }
             }
         }
+    }
+    
+    public String chex(int l){
+        return String.format("0x%08X", l);
+    }
+    
+    public String chex(byte l){
+        return String.format("0x%02X", l & 0xff);
     }
 
     public AES getAESi() {
@@ -1072,30 +1090,6 @@ public class Generator {
 
     public void setRand(SecureRandom rand) {
         this.rand = rand;
-    }
-
-    public boolean isUseDualAESARelationsIdentity() {
-        return useDualAESARelationsIdentity;
-    }
-
-    public void setUseDualAESARelationsIdentity(boolean useDualAESARelationsIdentity) {
-        this.useDualAESARelationsIdentity = useDualAESARelationsIdentity;
-    }
-
-    public boolean isUseDualAESIdentity() {
-        return useDualAESIdentity;
-    }
-
-    public void setUseDualAESIdentity(boolean useDualAESIdentity) {
-        this.useDualAESIdentity = useDualAESIdentity;
-    }
-
-    public boolean isUseDualAESSimpeAlternate() {
-        return useDualAESSimpeAlternate;
-    }
-
-    public void setUseDualAESSimpeAlternate(boolean useDualAESSimpeAlternate) {
-        this.useDualAESSimpeAlternate = useDualAESSimpeAlternate;
     }
 
     public boolean isUseIO04x04Identity() {

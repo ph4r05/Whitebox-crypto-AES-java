@@ -32,6 +32,9 @@ public class InternalBijections {
     
     public void alloc04x04(int size){
         pCoding04x04 = new Bijection4x4[size];
+        for(int i=0; i<size; i++){
+            pCoding04x04[i] = new Bijection4x4();
+        }
     }
     
     public LinearBijection[][] getMB_L08x08() {

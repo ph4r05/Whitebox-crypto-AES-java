@@ -33,6 +33,9 @@ public class XORCascade implements Serializable{
 
     public XORCascade() {
         x = new XORBox[BOXES];
+        for(int i=0; i<BOXES; i++){
+            x[i] = new XORBox();
+        }
     }
     
     public XORCascade(XORBox[] xtbl) {

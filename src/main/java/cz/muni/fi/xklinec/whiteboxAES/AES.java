@@ -38,6 +38,14 @@ public class AES {
     protected XORCascade[][]    xor      = new XORCascade[ROUNDS][2*State.COLS];
     private boolean           encrypt  = true;
 
+    public static int posIdx(byte x){
+        return x & 0xff;
+    }
+    
+    public static int posIdx(int x){
+        return x & 0xffffffff;
+    }
+    
     /**
      * Encryption OR decryption - depends on generated tables
      * @param in 
@@ -65,14 +73,13 @@ public class AES {
         state.loadFrom(ares[0]);
         
         // Compute 9 rounds of T2 boxes
-        for(r=0; r<ROUNDS; r++){
+        for(r=0; r<ROUNDS-1; r++){
             // Apply type 2 tables to all bytes, counting also shift rows selector.
             // One section ~ 1 column of state array, so select 1 column, first will
             // have indexes 0,4,8,12. Also take ShiftRows() into consideration.
             for(i=0; i<BYTES; i++){
                 ires[i].set(t2[r][i].lookup(state.get(shift(i))));
             }
-            
             
             for(i=0; i<State.COLS; i++){
                 // XOR results for one column from T2 boxes.

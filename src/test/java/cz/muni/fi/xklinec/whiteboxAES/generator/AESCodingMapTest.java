@@ -34,7 +34,9 @@ public class AESCodingMapTest extends TestCase {
         AESCodingMap i = new AESCodingMap();
         i.init();
         i.generateCodingMap();
-        // TODO review the generated test code and remove the default call to fail.
-        fail("The test case is a prototype.");
+       
+        // Complex testing of this method would be very complicated so for now
+        // it is enough that no assert was triggered by invalid allocation
+        // or connection to non-existing bijection.
     }
 }

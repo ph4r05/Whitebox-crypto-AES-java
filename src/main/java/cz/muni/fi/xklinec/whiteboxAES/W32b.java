@@ -162,4 +162,22 @@ public class W32b implements Serializable, Copyable{
         }
         return true;
     }
+    
+    @Override
+    public String toString() {
+        if (b==null){
+            return "W32b{b=null}";
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        final int ln = b.length;
+        for(int i=0; i<ln; i++){
+            sb.append(String.format("0x%02X", b[i] & 0xff));
+            if ((i+1)!=ln){
+                sb.append(", ");
+            }
+        }
+        
+        return "W32b{" + "b=" + sb.toString() + ";mem="+b+"}";
+    }
 }

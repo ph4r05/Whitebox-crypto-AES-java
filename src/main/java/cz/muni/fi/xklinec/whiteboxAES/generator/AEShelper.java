@@ -17,6 +17,7 @@ public class AEShelper {
     public static final int DEGREE         = 8;
     public static final int AES_FIELD_SIZE = 1<<8;
     
+    public static final int AES_TESTVECTORS = 4;
     public static final byte testVect128_key[] = new byte[]{
              (byte)0x2b, (byte)0x7e, (byte)0x15, (byte)0x16, (byte)0x28, (byte)0xae, 
              (byte)0xd2, (byte)0xa6, (byte)0xab, (byte)0xf7, (byte)0x15, (byte)0x88, 

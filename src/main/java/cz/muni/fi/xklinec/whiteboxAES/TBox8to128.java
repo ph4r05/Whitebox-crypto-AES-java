@@ -21,6 +21,10 @@ public class TBox8to128 implements Serializable{
     
     // Main lookup table
     protected State tbl[] = null;
+
+    public TBox8to128() {
+        init();
+    }
     
     /**
      * Basic lookup, returns direct result
@@ -28,7 +32,7 @@ public class TBox8to128 implements Serializable{
      * @return 
      */
     public State lookup(byte b){
-        return tbl[b];
+        return tbl[AES.posIdx(b)];
     }
     
     /**
@@ -101,6 +105,9 @@ public class TBox8to128 implements Serializable{
      */
     public final void init(){
         tbl = initNew();
+        for(int i=0; i<ROWS; i++){
+            tbl[i] = new State();
+        }
     }
     
     public static State[] initNew() {
@@ -127,5 +134,10 @@ public class TBox8to128 implements Serializable{
             return false;
         }
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return "TBox8to128{" + "tbl=" + tbl + "; size="+(tbl!=null ? tbl.length : -1)+"}";
     }
 }

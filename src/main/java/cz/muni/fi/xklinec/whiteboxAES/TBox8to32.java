@@ -45,7 +45,7 @@ public class TBox8to32 implements Serializable, Copyable{
      * @return 
      */
     public long lookup(byte b){
-        return tbl[b];
+        return tbl[AES.posIdx(b)];
     }
     
     /**

@@ -40,10 +40,10 @@ public class Utils {
      * @return 
      */
     public static long byte2long(byte[] b){
-        return    ((long) b[0])
-               | (((long) b[1]) << 8)
-               | (((long) b[2]) << 16)
-               | (((long) b[3]) << 24);
+        return    ((long) b[0] & 0xff)
+               | (((long) b[1] & 0xff) << 8)
+               | (((long) b[2] & 0xff) << 16)
+               | (((long) b[3] & 0xff) << 24);
     }
     
     /**
@@ -86,7 +86,7 @@ public class Utils {
      * LSB in long will be 1st bit in byte[0].
      */
     public static long byte2long(byte a, int idx){
-        return (long) ((long)a << 8*idx);
+        return (long) ((long)(a & 0xff) << 8*idx);
     }
     
      public static int ceil(double x) {

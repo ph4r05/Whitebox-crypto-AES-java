@@ -47,6 +47,29 @@ public class State implements Serializable, Copyable{
     }
     
     /**
+     * Copy/assign constructor. Can transpose input bytes - AES input state
+     * is loaded by columns.
+     * 
+     * @param state
+     * @param copy 
+     * @param transpose    transpose, copy is forced
+     */
+    public State(byte[] state, boolean copy, boolean transpose) {
+        if (transpose==false){
+            if (copy){
+                this.state = Arrays.copyOf(state, BYTES);
+            } else {
+                this.state = state;
+            }
+        } else {
+            init();
+            for(int i=0; i<BYTES; i++){
+                this.state[i] = state[transpose(i)];
+            }
+        }
+    }
+    
+    /**
      * Sets whole vector to zero.
      */
     public void zero(){
@@ -335,5 +358,23 @@ public class State implements Serializable, Copyable{
             return false;
         }
         return true;
+    }
+
+    @Override
+    public String toString() {
+        if (state==null){
+            return "State{state=null}";
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        final int ln = state.length;
+        for(int i=0; i<ln; i++){
+            sb.append(String.format("0x%02X", state[i] & 0xff));
+            if ((i+1)!=ln){
+                sb.append(", ");
+            }
+        }
+        
+        return "State{" + "state=" + sb.toString() + ";mem="+state+"}";
     }
 }
