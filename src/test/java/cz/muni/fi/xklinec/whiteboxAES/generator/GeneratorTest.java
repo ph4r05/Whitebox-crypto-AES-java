@@ -7,7 +7,6 @@ package cz.muni.fi.xklinec.whiteboxAES.generator;
 import cz.muni.fi.xklinec.whiteboxAES.AES;
 import cz.muni.fi.xklinec.whiteboxAES.State;
 import cz.muni.fi.xklinec.whiteboxAES.W32b;
-import cz.muni.fi.xklinec.whiteboxAES.generator.Generator.Coding;
 import java.util.Arrays;
 import java.util.Random;
 import junit.framework.TestCase;
@@ -104,24 +103,28 @@ public class GeneratorTest extends TestCase {
     /**
      * Test of generate method, of class Generator.
      */
-    public void testGenerate() {
-        System.out.println("generate");
-        Generator g = new Generator();
+    public void testGeneratePlain() {
+        System.out.println("generatePlain");
+        Generator gEnc  = new Generator();
+        Generator gDec = new Generator();
         Random rand = new Random();
         
         // External encoding is needed, at least some, generate identities
         ExternalBijections extc = new ExternalBijections();
-        g.generateExtEncoding(extc, Generator.WBAESGEN_EXTGEN_ID);
+        gEnc.generateExtEncoding(extc, Generator.WBAESGEN_EXTGEN_ID);
         
         // at first generate pure table AES implementation
-        g.setUseIO04x04Identity(true);
-        g.setUseIO08x08Identity(true);
-        g.setUseMB08x08Identity(true);
-        g.setUseMB32x32Identity(true);
+        gEnc.setUseIO04x04Identity(true);
+        gEnc.setUseIO08x08Identity(true);
+        gEnc.setUseMB08x08Identity(true);
+        gEnc.setUseMB32x32Identity(true);
         
         // test with testvectors
-        g.generate(true, AEShelper.testVect128_key, 16, extc);
-        AES AESi = g.getAESi();
+        gEnc.generate(true, AEShelper.testVect128_key, 16, extc);
+        AES AESenc = gEnc.getAESi();
+        // Decryption
+        //gEnc.generate(false, AEShelper.testVect128_key, 16, extc);
+        //AES AESdec = gDec.getAESi();
         
         // Initialize structures for AES testing
         int r, i, t;
@@ -141,11 +144,11 @@ public class GeneratorTest extends TestCase {
             // compute result to ares[16]
             for(i=0; i<AES.BYTES; i++){
                 // Note: Tbox is indexed by cols, state by rows - transpose needed here
-                ares[i].loadFrom(AESi.getT1()[0][i].lookup(state.get(i)) );
+                ares[i].loadFrom(AESenc.getT1()[0][i].lookup(state.get(i)) );
             }
 
             // now compute XOR cascade from 16 x 128bit result after T1 application.
-            AESi.getXorState()[0].xor(ares);
+            AESenc.getXorState()[0].xor(ares);
             state.loadFrom(ares[0]);
             
             final byte[] stateRes = state.getState();
@@ -165,13 +168,13 @@ public class GeneratorTest extends TestCase {
                     
                     // Apply T3 boxes, valid XOR results are in ires[0], ires[4], ires[8], ires[12]
                     // Start from the end, because in ires[i] is our XORing result.
-                    ires[12+i].set(AESi.getT3()[r][12+i].lookup(cires[3]));
-                    ires[ 8+i].set(AESi.getT3()[r][ 8+i].lookup(cires[2]));
-                    ires[ 4+i].set(AESi.getT3()[r][ 4+i].lookup(cires[1]));
-                    ires[ 0+i].set(AESi.getT3()[r][ 0+i].lookup(cires[0]));
+                    ires[12+i].set(AESenc.getT3()[r][12+i].lookup(cires[3]));
+                    ires[ 8+i].set(AESenc.getT3()[r][ 8+i].lookup(cires[2]));
+                    ires[ 4+i].set(AESenc.getT3()[r][ 4+i].lookup(cires[1]));
+                    ires[ 0+i].set(AESenc.getT3()[r][ 0+i].lookup(cires[0]));
 
                     // Apply final XOR cascade after T3 box
-                    ires[i].set(AESi.getXor()[r][2*i+1].xor(
+                    ires[i].set(AESenc.getXor()[r][2*i+1].xor(
                         ires[ 0+i].getLong(), 
                         ires[ 4+i].getLong(), 
                         ires[ 8+i].getLong(), 
@@ -191,7 +194,54 @@ public class GeneratorTest extends TestCase {
             State state  = new State(AEShelper.testVect128_plain[i], true, true);
             State cipher = new State(AEShelper.testVect128_cipher[i], true, false);
             
-            AESi.crypt(state);
+            AESenc.crypt(state);
+            
+            System.out.println("Testvector index: " + i);
+            System.out.println("=====================");
+            System.out.println("Testvector plaintext: \n" + plain);
+            System.out.println("Testvector ciphertext: \n"+ cipher);
+            System.out.println("Enc(plaintext_test): \n" + state);
+            
+            assertEquals("Cipher output mismatch", true, state.equals(cipher));
+        }
+    }
+    
+    
+    /**
+     * Test of generate method, of class Generator.
+     */
+    public void testGenerate() {
+        System.out.println("generate");
+        Generator gEnc  = new Generator();
+        Generator gDec = new Generator();
+        Random rand = new Random();
+        
+        // External encoding is needed, at least some, generate identities
+        ExternalBijections extc = new ExternalBijections();
+        gEnc.generateExtEncoding(extc, Generator.WBAESGEN_EXTGEN_ID);
+        
+        // at first generate pure table AES implementation
+        gEnc.setUseIO04x04Identity(true);
+        gEnc.setUseIO08x08Identity(false);
+        gEnc.setUseMB08x08Identity(false);
+        gEnc.setUseMB32x32Identity(false);
+        
+        // test with testvectors
+        gEnc.generate(true, AEShelper.testVect128_key, 16, extc);
+        AES AESenc = gEnc.getAESi();
+        // Decryption
+        //gEnc.generate(false, AEShelper.testVect128_key, 16, extc);
+        //AES AESdec = gDec.getAESi();
+        
+        //
+        // Test whole AES on test vectors
+        //
+        for(int i=0; i<AEShelper.AES_TESTVECTORS; i++){
+            State plain  = new State(AEShelper.testVect128_plain[i], true, true);
+            State state  = new State(AEShelper.testVect128_plain[i], true, true);
+            State cipher = new State(AEShelper.testVect128_cipher[i], true, false);
+            
+            AESenc.crypt(state);
             
             System.out.println("Testvector index: " + i);
             System.out.println("=====================");

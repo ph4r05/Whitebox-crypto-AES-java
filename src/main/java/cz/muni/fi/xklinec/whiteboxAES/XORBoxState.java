@@ -67,8 +67,8 @@ public class XORBoxState implements Serializable{
         final byte br[] = b.getState();
         for (int i=0; i<WIDTH; i++){
             s[i] = (byte)( 
-                    (xor[2*i+0][(((ar[i] >> 4) & 0xF) << 4) | ((br[i] >> 4) & 0xF)] << 4)
-                  | (xor[2*i+1][(( ar[i]       & 0xF) << 4) | ( br[i]       & 0xF)]     ) 
+                    (xor[2*i+0][(((ar[i] >>> 4) & 0xF) << 4) | ((br[i] >>> 4) & 0xF)] << 4)
+                  | (xor[2*i+1][(( ar[i]        & 0xF) << 4) | ( br[i]        & 0xF)]     ) 
                    );
         }
 
@@ -99,8 +99,8 @@ public class XORBoxState implements Serializable{
         final byte br[] = b.getState();
         for (int i=0; i<WIDTH; i++){
             ar[i] = (byte)( 
-                    (xor[2*i+0][(((ar[i] >> 4) & 0xF) << 4) | ((br[i] >> 4) & 0xF)] << 4)
-                  | (xor[2*i+1][(( ar[i]       & 0xF) << 4) | ( br[i]       & 0xF)]     ) 
+                    (xor[2*i+0][(((ar[i] >>> 4) & 0xF) << 4) | ((br[i] >>> 4) & 0xF)] << 4)
+                  | (xor[2*i+1][(( ar[i]        & 0xF) << 4) | ( br[i]        & 0xF)]     ) 
                    );
         }
         

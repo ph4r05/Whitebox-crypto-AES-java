@@ -60,7 +60,7 @@ public class XORBox implements Serializable{
     public static long xor(final byte[][] xor, long a, long b){
         long result = 0;
         for (int i=0; i<BOXES; i++){
-            result |= ((long)(xor[i][ (int) ((((a >> (i*4)) & 0xF) << 4) | (b >> (i*4)) & 0xF) ])) << (i*4);
+            result |= ((long)(xor[i][ (int) ((((a >>> (i*4)) & 0xF) << 4) | (b >>> (i*4)) & 0xF) ])) << (i*4);
         }
         
         return result;
@@ -87,8 +87,8 @@ public class XORBox implements Serializable{
     public static byte[] xorA(final byte[][] xor, byte[] a, byte[] b){
         for (int i=0; i<WIDTH; i++){
             a[i] = (byte)( 
-                    (xor[2*i+0][(((a[i] >> 4) & 0xF) << 4) | ((b[i] >> 4) & 0xF)] << 4)
-                  | (xor[2*i+1][(( a[i]       & 0xF) << 4) | ( b[i]       & 0xF)]     ) 
+                    (xor[2*i+0][(((a[i] >>> 4) & 0xF) << 4) | ((b[i] >>> 4) & 0xF)] << 4)
+                  | (xor[2*i+1][(( a[i]        & 0xF) << 4) | ( b[i]        & 0xF)]     ) 
                    );
         }
         

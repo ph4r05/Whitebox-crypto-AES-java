@@ -60,22 +60,8 @@ public class Generator {
     // whole ExtEncoding will be identity
     public static final int WBAESGEN_EXTGEN_ID = (WBAESGEN_EXTGEN_fCID | WBAESGEN_EXTGEN_lCID | WBAESGEN_EXTGEN_IDMID | WBAESGEN_EXTGEN_ODMID);
     
-    public static final int shiftRowsLBijection[] = {
-        0, 13, 10, 7,
-        4,  1, 14, 11,
-        8,  5,  2, 15,
-        12, 9,  6,  3
-    };
-    
-    public static final int shiftRowsLBijectionInv[] = {
-        0,  5, 10, 15,
-        4,  9, 14,  3,
-        8, 13,  2,  7,
-       12,  1,  6, 11
-    };
-    
     public static int nextTbox(int idx, boolean encrypt){
-        return encrypt ? shiftRowsLBijection[idx] : shiftRowsLBijectionInv[idx];
+        return AES.shift(idx, !encrypt);
     }
     
     //
@@ -538,7 +524,7 @@ public class Generator {
 
 	// Generate all required 8x8 mixing bijections.
 	for (r = 0; r < L08x08rounds; r++) {
-            for (i = 0; i < MB_CNT_08x08_PER_ROUND; i++) {
+            for (i = 0; i < MB_CNT_08x08_PER_ROUND; i++) {                
                 if (!MB08x08Identity) {
                     final GF2MatrixEx m    = MixingBijection.generateMixingBijection(8, 4, rand, debug);
                     final GF2MatrixEx minv = (GF2MatrixEx) m.computeInverse();
@@ -585,7 +571,7 @@ public class Generator {
                     // HINT: if you are debugging IO problems, try to turn on and off some bijections,
                     // you can very easily localize the problem.
 
-                    //if (i>=0x3c0) identity=true;
+                    //if (i>=3) identity=true;
                     c |= generate4X4Bijection(tbl[i], identity);
             }
 
@@ -842,8 +828,10 @@ public class Generator {
                 // Build L lookup table from L_k stripes using shiftRowsLBijection (Lr_k is just simplification for indexes)
                 // Now we are determining Lbox that will be used in next round.
                 // Also pre-compute lookup tables by matrix multiplication
-                for (j = 0; r < (AES.ROUNDS - 1) && j < State.COLS; j++) {
-                    Lr_k[j] = eMB_L08x08[r][nextTbox(i * State.COLS + j, encrypt)].getMb();
+                for (j = 0; r < (AES.ROUNDS - 1) && j < State.ROWS; j++) {
+                    final int idx = j * State.COLS + i; // index to state array, iterating by cols;
+                    
+                    Lr_k[j] = eMB_L08x08[r][nextTbox(idx, encrypt)].getMb();
                     for (b = 0; b < 256; b++) {
                         GF2MatrixEx tmpMat = new GF2MatrixEx(8, 1);
                         NTLUtils.putByteAsColVector(tmpMat, (byte) b, 0, 0);

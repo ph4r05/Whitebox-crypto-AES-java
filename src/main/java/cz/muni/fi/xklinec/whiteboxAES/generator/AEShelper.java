@@ -4,6 +4,7 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES.generator;
 
+import cz.muni.fi.xklinec.whiteboxAES.AES;
 import cz.muni.fi.xklinec.whiteboxAES.State;
 import org.bouncycastle.pqc.math.linearalgebra.GF2mField;
 
@@ -374,7 +375,7 @@ public class AEShelper {
      * @return 
      */
     public int ByteSub(int e){
-        return sboxAffine[e];
+        return sboxAffine[AES.posIdx(e)];
     }
 
     /**
@@ -396,7 +397,7 @@ public class AEShelper {
      * @return 
      */
     public int ByteSubInv(int e){
-        return sboxAffineInv[e];
+        return sboxAffineInv[AES.posIdx(e)];
     }
 
     /**
