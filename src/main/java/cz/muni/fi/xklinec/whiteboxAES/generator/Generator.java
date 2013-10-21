@@ -705,7 +705,7 @@ public class Generator {
                 mapResult.zero();
 
                 // Decode with IO encoding
-                bb = HILO(lfC[0][2 * i + 0].invCoding[HI((byte)b)], lfC[0][2 * i + 1].invCoding[LO((byte)b)]);
+                bb = HILO(lfC[0][2 * i + 0].invCoding[HI((byte)b)], lfC[0][2 * i + 1].invCoding[LO((byte)b)]) & 0xff;
                 // Transform bb to matrix, to perform mixing bijection operation (matrix multiplication)
                 GF2MatrixEx tmpMat = new GF2MatrixEx(128, 1);
                 // builds binary matrix [0 0 bb 0 0 0 0 0 0 0 0 0 0 0 0 0]^T, if i==2;
@@ -1107,7 +1107,7 @@ public class Generator {
             // IO bijection
             //
             for(int jj=0; jj<16; jj++){
-                int tt  = State.transpose(jj);
+                int tt  = /*State.transpose*/(jj);
                 byte bb1 = (byte) (extc.getLfC()[0][2*tt+0].coding[HI(state.get(jj))] & 0xff);
                 byte bb2 = (byte) (extc.getLfC()[0][2*tt+1].coding[LO(state.get(jj))] & 0xff);
                 state.set((byte) HILO(bb1, bb2), jj);
@@ -1120,11 +1120,9 @@ public class Generator {
             // IO bijection
             //
             for(int jj=0; jj<16; jj++){
-                int tt = State.transpose(jj);
-                byte bb1 = (byte) (extc.getLfC()[0][2*tt+0].invCoding[HI(state.get(jj))] & 0xff);
-                byte bb2 = (byte) (extc.getLfC()[0][2*tt+1].invCoding[LO(state.get(jj))] & 0xff);
-                state.set((byte) HILO(bb1, bb2), jj);
-                //state.B[jj] = HILO(extc->lfC[1][2*tt+0].invCoding[HI(state.B[jj])], extc->lfC[1][2*tt+1].invCoding[LO(state.B[jj])]);
+                byte bLO = (byte) (extc.getLfC()[1][2*jj+0].invCoding[LO(state.get(jj))] & 0xff);
+                byte bHI = (byte) (extc.getLfC()[1][2*jj+1].invCoding[HI(state.get(jj))] & 0xff);
+                state.set((byte) HILO(bHI, bLO), jj);
             }
 
             //
@@ -1132,16 +1130,13 @@ public class Generator {
             //
             GF2MatrixEx tmpMat2 = new GF2MatrixEx(128, 1);
             for(int jj=0; jj<16; jj++){
-                NTLUtils.putByteAsColVector(tmpMat2, state.get(jj), State.transpose(jj*8), 0); 
-                //BYTE_to_matGF2(state.B[jj], tmpMat2, idxTranspose(jj)*8, 0);
+                NTLUtils.putByteAsColVector(tmpMat2, state.get(jj), jj*8, 0); 
             }
             
             tmpMat2 = (GF2MatrixEx) extc.getIODM()[1].getInv().rightMultiply(tmpMat2);
-            //tmpMat2 = extc->IODM[1].inv * tmpMat2;
 
             for(int jj=0; jj<16; jj++){
-                state.set(NTLUtils.colBinaryVectorToByte(tmpMat2, State.transpose(jj)*8, 0), jj);
-                //state.B[jj] = matGF2_to_BYTE(tmpMat2, idxTranspose(jj)*8, 0);
+                state.set(NTLUtils.colBinaryVectorToByte(tmpMat2, jj*8, 0), jj);
             }
 	}
     }

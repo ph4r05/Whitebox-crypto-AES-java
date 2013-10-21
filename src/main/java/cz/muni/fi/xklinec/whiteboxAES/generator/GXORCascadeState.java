@@ -122,7 +122,7 @@ public class GXORCascadeState implements IOEncoding{
                 Generator.generateXorTable(cod[i].xtb[j], tbl[j], pCoding04x04);
                 
                 // Do we have some special external encoding here to use ?
-                if (outputUnallocated && (j+1) == XORBoxState.BOXES && extCoding != null){
+                if (outputUnallocated && (i+1) == XORCascadeState.BOXES && extCoding != null){
                     for(int k=0; k<256; k++){
                         tbl[j][k] = extCoding[j].coding[tbl[j][k]];
                     }

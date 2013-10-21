@@ -32,12 +32,12 @@ public class GeneratorTest extends TestCase {
     }
 
     /**
-     * Test of POS_MOD method, of class Generator.
+     * Test of posMod method, of class Generator.
      */
     public void testPOS_MOD() {
         System.out.println("POS_MOD");
         int result;
-        result = Generator.POS_MOD(-1, 8);
+        result = Generator.posMod(-1, 8);
         assertEquals(7, result);
     }
 
@@ -102,7 +102,7 @@ public class GeneratorTest extends TestCase {
 
     /**
      * Test of generate method, of class Generator.
-     */
+     *
     public void testGeneratePlain() {
         System.out.println("generatePlain");
         Generator gEnc  = new Generator();
@@ -204,8 +204,113 @@ public class GeneratorTest extends TestCase {
             
             assertEquals("Cipher output mismatch", true, state.equals(cipher));
         }
-    }
+    }*/
     
+    /**
+     * Test of generate method, of class Generator.
+     *
+    public void testGeneratePlainDec() {
+        System.out.println("generatePlainDec");
+        Generator gEnc  = new Generator();
+        Generator gDec = new Generator();
+        Random rand = new Random();
+        
+        // External encoding is needed, at least some, generate identities
+        ExternalBijections extc = new ExternalBijections();
+        gEnc.generateExtEncoding(extc, Generator.WBAESGEN_EXTGEN_ID);
+        
+        // at first generate pure table AES implementation
+        gEnc.setUseIO04x04Identity(true);
+        gEnc.setUseIO08x08Identity(true);
+        gEnc.setUseMB08x08Identity(true);
+        gEnc.setUseMB32x32Identity(true);
+        
+        // test with testvectors
+        gEnc.generate(true, AEShelper.testVect128_key, 16, extc);
+        AES AESenc = gEnc.getAESi();
+        // Decryption
+        //gEnc.generate(false, AEShelper.testVect128_key, 16, extc);
+        //AES AESdec = gDec.getAESi();
+        
+        // Initialize structures for AES testing
+        int r, i, t;
+	W32b  ires[] = new W32b[AES.BYTES];	// intermediate result for T2,T3-boxes
+	State ares[] = new State[AES.BYTES];	// intermediate result for T1-boxes
+        for(i=0; i<AES.BYTES; i++){
+            ires[i] = new W32b();
+            ares[i] = new State();
+        }
+        
+        //
+        // T1 tables + XOR cascade has to be identity
+        //
+        for(t=0; t<AEShelper.AES_TESTVECTORS; t++){
+            State state  = new State(AEShelper.testVect128_plain[t], true);
+            // At first we have to put input to T1 boxes directly, no shift rows
+            // compute result to ares[16]
+            for(i=0; i<AES.BYTES; i++){
+                // Note: Tbox is indexed by cols, state by rows - transpose needed here
+                ares[i].loadFrom(AESenc.getT1()[0][i].lookup(state.get(i)) );
+            }
+
+            // now compute XOR cascade from 16 x 128bit result after T1 application.
+            AESenc.getXorState()[0].xor(ares);
+            state.loadFrom(ares[0]);
+            
+            final byte[] stateRes = state.getState();
+            assertEquals("T1 + Xor cascade is not identity and should be here", true, Arrays.equals(stateRes, AEShelper.testVect128_plain[t]));
+        }
+        
+        //
+        // Now T3 table + particular XOR box has to be identity!
+        //
+        for(t=0; t<100; t++){
+            for(r=0; r<AES.ROUNDS-1; r++){                
+                // test all T3 boxes
+                for(i=0; i<State.COLS; i++){       
+                    // generate random long for T3 identity testing
+                    byte[] cires = new byte[4];
+                    rand.nextBytes(cires);
+                    
+                    // Apply T3 boxes, valid XOR results are in ires[0], ires[4], ires[8], ires[12]
+                    // Start from the end, because in ires[i] is our XORing result.
+                    ires[12+i].set(AESenc.getT3()[r][12+i].lookup(cires[3]));
+                    ires[ 8+i].set(AESenc.getT3()[r][ 8+i].lookup(cires[2]));
+                    ires[ 4+i].set(AESenc.getT3()[r][ 4+i].lookup(cires[1]));
+                    ires[ 0+i].set(AESenc.getT3()[r][ 0+i].lookup(cires[0]));
+
+                    // Apply final XOR cascade after T3 box
+                    ires[i].set(AESenc.getXor()[r][2*i+1].xor(
+                        ires[ 0+i].getLong(), 
+                        ires[ 4+i].getLong(), 
+                        ires[ 8+i].getLong(), 
+                        ires[12+i].getLong()));
+
+                    // assert equality - T3+xor identity
+                    assertEquals("T3 box should be identity but is not", true, Arrays.equals(cires, ires[i].get()));
+                }
+            }
+        }
+        
+        //
+        // Test whole AES on test vectors
+        //
+        for(i=0; i<AEShelper.AES_TESTVECTORS; i++){
+            State plain  = new State(AEShelper.testVect128_plain[i], true, true);
+            State state  = new State(AEShelper.testVect128_plain[i], true, true);
+            State cipher = new State(AEShelper.testVect128_cipher[i], true, false);
+            
+            AESenc.crypt(state);
+            
+            System.out.println("Testvector index: " + i);
+            System.out.println("=====================");
+            System.out.println("Testvector plaintext: \n" + plain);
+            System.out.println("Testvector ciphertext: \n"+ cipher);
+            System.out.println("Enc(plaintext_test): \n" + state);
+            
+            assertEquals("Cipher output mismatch", true, state.equals(cipher));
+        }
+    }*/
     
     /**
      * Test of generate method, of class Generator.
@@ -218,13 +323,13 @@ public class GeneratorTest extends TestCase {
         
         // External encoding is needed, at least some, generate identities
         ExternalBijections extc = new ExternalBijections();
-        gEnc.generateExtEncoding(extc, Generator.WBAESGEN_EXTGEN_ID);
+        gEnc.generateExtEncoding(extc, 0);
         
         // at first generate pure table AES implementation
         gEnc.setUseIO04x04Identity(true);
-        gEnc.setUseIO08x08Identity(false);
-        gEnc.setUseMB08x08Identity(false);
-        gEnc.setUseMB32x32Identity(false);
+        gEnc.setUseIO08x08Identity(true);
+        gEnc.setUseMB08x08Identity(true);
+        gEnc.setUseMB32x32Identity(true);
         
         // test with testvectors
         gEnc.generate(true, AEShelper.testVect128_key, 16, extc);
@@ -241,7 +346,9 @@ public class GeneratorTest extends TestCase {
             State state  = new State(AEShelper.testVect128_plain[i], true, true);
             State cipher = new State(AEShelper.testVect128_cipher[i], true, false);
             
+            gEnc.applyExternalEnc(state, extc, true);
             AESenc.crypt(state);
+            gEnc.applyExternalEnc(state, extc, false);
             
             System.out.println("Testvector index: " + i);
             System.out.println("=====================");
