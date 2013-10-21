@@ -803,6 +803,7 @@ public class Generator {
         // Create coding map. This step is always constant for each AES
         // but can be modified during debuging new features (enable/disable bijections).
         System.out.println("Coding map generation...");
+        AESMap.setEncrypt(encrypt);
         AESMap.generateCodingMap();
         
         // set external encodings to XORCascadeState
@@ -826,6 +827,12 @@ public class Generator {
         // Generate round keys
         System.out.println("Computing key schedule ");
         byte[] keySchedule = AESh.keySchedule(key, keySize, debug);
+        StringBuilder sb = new StringBuilder();
+        for(int i=0; i<keySchedule.length; i++){
+            sb.append(String.format("0x%02X", keySchedule[i]));
+            sb.append((i>0 && (((i+1) % 16) == 0)) ? "\n" : ", ") ;
+        }
+        System.out.println(sb.toString());
         
         // Generate all XOR cascades
         System.out.println("Generating all 32bit XOR tables");
@@ -858,12 +865,14 @@ public class Generator {
             System.out.println("Generating tables for round = " + (r + 1));
 
             // Iterate by mix cols/sections/dual AES-es
+            // i = current column in state matrix
             for (i = 0; i < State.COLS; i++) {
 
                 //
                 // Build L lookup table from L_k stripes using shiftRowsLBijection (Lr_k is just simplification for indexes)
                 // Now we are determining Lbox that will be used in next round.
-                // Also pre-compute lookup tables by matrix multiplication
+                // Also pre-compute lookup tables by matrix multiplication.
+                // j = current row in state matrix
                 for (j = 0; r < (AES.ROUNDS - 1) && j < State.ROWS; j++) {
                     final int idx = j * State.COLS + i; // index to state array, iterating by cols;
                     
@@ -885,11 +894,27 @@ public class Generator {
                 //
                 for (j = 0; j < State.ROWS; j++) {
                     final int idx = j * State.COLS + i; // index to state array, iterating by cols;
-                    final int keyIdx = 16 * r + State.transpose(AES.shift(idx, encrypt));
-                    System.out.println("T[" + r + "][" + i + "][" + j + "] key = 16*" + r
-                            + " + " + ((int) State.transpose(AES.shift(idx, encrypt)))
+                    
+                    // round key index
+                    final int keyIdx = encrypt ?
+                            16 * r                    + State.transpose(AES.shift(idx, encrypt))
+                          : 16 * (AES.ROUNDS - r - 1) + State.transpose(idx);
+                    
+                    // special first / last round key
+                    final int keyIdx2 = encrypt? 
+                             16 * (r + 1) + State.transpose(idx)
+                           : 16 * AES.ROUNDS + State.transpose(AES.shift(idx, encrypt));
+                    
+                    System.out.println((encrypt ? 'e': 'd')+"T[" + r + "][" + i + "][" + j + "] key = "
+                            + keyIdx
                             + " = " + String.format("0x%02X", posIdx(keySchedule[keyIdx]))
                             + "; idx=" + idx);
+                    
+                    if ((!encrypt && r == 0) || (r == AES.ROUNDS - 1 && encrypt)) {
+                        System.out.println((encrypt ? 'e': 'd')+"T[" + r + "][" + i + "][" + j + "]F key = "
+                                 + keyIdx2 + " = " + String.format("0x%02X", posIdx(keySchedule[keyIdx2])));                   
+                    }
+                    
 
                     // Build tables - for each byte
                     for (b = 0; b < 256; b++) {
@@ -957,7 +982,7 @@ public class Generator {
                                 // Same logic applies here
                                 // AddRoundKey(State, k_10)  | -> InvShiftRows(State)
                                 // InvShiftRows(State)       | -> AddRoundKey(State, InvShiftRows(k_10))
-                                int tmpKey = keySchedule[16 * AES.ROUNDS + State.transpose(AES.shift(idx, encrypt))];
+                                int tmpKey = keySchedule[keyIdx2];
                                 tmpGF2E = field.add(tmpGF2E & 0xff, tmpKey & 0xff) & 0xff;
                             }
                         }
@@ -970,7 +995,7 @@ public class Generator {
                         // Decryption case:
                         // T(x) = Sbox(x) + k
                         if (!encrypt) {
-                            tmpE = field.add(tmpE & 0xff, keySchedule[16 * (AES.ROUNDS - r - 1) + State.transpose(idx)] & 0xff) & 0xff;
+                            tmpE = field.add(tmpE & 0xff, keySchedule[keyIdx] & 0xff) & 0xff;
                         }
 
                         // If we are in last round we also have to add k_10, not affected by ShiftRows()
@@ -978,7 +1003,7 @@ public class Generator {
                         if (r == AES.ROUNDS - 1) {
                             // Adding last encryption key (k_10) by special way is performed only in encryption
                             if (encrypt) {
-                                tmpE = field.add(tmpE & 0xff, keySchedule[16 * (r + 1) + State.transpose(idx)] & 0xff) & 0xff;
+                                tmpE = field.add(tmpE & 0xff, keySchedule[keyIdx2] & 0xff) & 0xff;
                             }
 
                             // Now we use output encoding G and quit, no MixColumn or Mixing bijections here.

@@ -10,6 +10,7 @@ import cz.muni.fi.xklinec.whiteboxAES.W32b;
 import java.util.Arrays;
 import java.util.Random;
 import junit.framework.TestCase;
+import sun.java2d.loops.DrawGlyphListAA;
 
 /**
  *
@@ -125,7 +126,7 @@ public class GeneratorTest extends TestCase {
         gDec.setUseMB32x32Identity(true);
         
         // test with testvectors
-        gEnc.generate(true, AEShelper.testVect128_key, 16, extc);
+        gEnc.generate(true,  AEShelper.testVect128_key, 16, extc);
         AES AESenc = gEnc.getAESi();
         // Decryption
         gDec.generate(false, AEShelper.testVect128_key, 16, extc);
@@ -195,140 +196,33 @@ public class GeneratorTest extends TestCase {
         // Test whole AES on test vectors
         //
         for(i=0; i<AEShelper.AES_TESTVECTORS; i++){
-            State plain  = new State(AEShelper.testVect128_plain[i], true, true);
-            State state  = new State(AEShelper.testVect128_plain[i], true, true);
+            State plain  = new State(AEShelper.testVect128_plain[i], true,  false);
+            State state  = new State(AEShelper.testVect128_plain[i], true,  false);
             State cipher = new State(AEShelper.testVect128_cipher[i], true, false);
-            
-            AESenc.crypt(state);
-            
             
             System.out.println("Testvector index: " + i);
             System.out.println("=====================");
             System.out.println("Testvector plaintext: \n" + plain);
             System.out.println("Testvector ciphertext: \n"+ cipher);
+            
+            // Encrypt
+            state.transpose();
+            AESenc.crypt(state);
             System.out.println("Enc(plaintext_test): \n" + state);
             assertEquals("Cipher output mismatch", true, state.equals(cipher));
             
-            state.transpose();
-            System.out.println("Trans(Enc(plaintext_test)): \n" + state);
-            
-            AESdec.crypt(state);
-            System.out.println("Dec(Enc(plaintext_test)): \n" + state);
-            
-            
-            
+            // Decrypt
+            cipher.transpose();
+            AESdec.crypt(cipher);
+            System.out.println("Dec(T(Enc(plaintext_test))): \n" + cipher);
+            assertEquals("Cipher output mismatch", true, plain.equals(cipher));
         }
     }
     
-    /**
-     * Test of generate method, of class Generator.
-     *
-    public void testGeneratePlainDec() {
-        System.out.println("generatePlainDec");
-        Generator gEnc  = new Generator();
-        Generator gDec = new Generator();
-        Random rand = new Random();
-        
-        // External encoding is needed, at least some, generate identities
-        ExternalBijections extc = new ExternalBijections();
-        gEnc.generateExtEncoding(extc, Generator.WBAESGEN_EXTGEN_ID);
-        
-        // at first generate pure table AES implementation
-        gEnc.setUseIO04x04Identity(true);
-        gEnc.setUseIO08x08Identity(true);
-        gEnc.setUseMB08x08Identity(true);
-        gEnc.setUseMB32x32Identity(true);
-        
-        // test with testvectors
-        gEnc.generate(true, AEShelper.testVect128_key, 16, extc);
-        AES AESenc = gEnc.getAESi();
-        // Decryption
-        //gEnc.generate(false, AEShelper.testVect128_key, 16, extc);
-        //AES AESdec = gDec.getAESi();
-        
-        // Initialize structures for AES testing
-        int r, i, t;
-	W32b  ires[] = new W32b[AES.BYTES];	// intermediate result for T2,T3-boxes
-	State ares[] = new State[AES.BYTES];	// intermediate result for T1-boxes
-        for(i=0; i<AES.BYTES; i++){
-            ires[i] = new W32b();
-            ares[i] = new State();
-        }
-        
-        //
-        // T1 tables + XOR cascade has to be identity
-        //
-        for(t=0; t<AEShelper.AES_TESTVECTORS; t++){
-            State state  = new State(AEShelper.testVect128_plain[t], true);
-            // At first we have to put input to T1 boxes directly, no shift rows
-            // compute result to ares[16]
-            for(i=0; i<AES.BYTES; i++){
-                // Note: Tbox is indexed by cols, state by rows - transpose needed here
-                ares[i].loadFrom(AESenc.getT1()[0][i].lookup(state.get(i)) );
-            }
-
-            // now compute XOR cascade from 16 x 128bit result after T1 application.
-            AESenc.getXorState()[0].xor(ares);
-            state.loadFrom(ares[0]);
-            
-            final byte[] stateRes = state.getState();
-            assertEquals("T1 + Xor cascade is not identity and should be here", true, Arrays.equals(stateRes, AEShelper.testVect128_plain[t]));
-        }
-        
-        //
-        // Now T3 table + particular XOR box has to be identity!
-        //
-        for(t=0; t<100; t++){
-            for(r=0; r<AES.ROUNDS-1; r++){                
-                // test all T3 boxes
-                for(i=0; i<State.COLS; i++){       
-                    // generate random long for T3 identity testing
-                    byte[] cires = new byte[4];
-                    rand.nextBytes(cires);
-                    
-                    // Apply T3 boxes, valid XOR results are in ires[0], ires[4], ires[8], ires[12]
-                    // Start from the end, because in ires[i] is our XORing result.
-                    ires[12+i].set(AESenc.getT3()[r][12+i].lookup(cires[3]));
-                    ires[ 8+i].set(AESenc.getT3()[r][ 8+i].lookup(cires[2]));
-                    ires[ 4+i].set(AESenc.getT3()[r][ 4+i].lookup(cires[1]));
-                    ires[ 0+i].set(AESenc.getT3()[r][ 0+i].lookup(cires[0]));
-
-                    // Apply final XOR cascade after T3 box
-                    ires[i].set(AESenc.getXor()[r][2*i+1].xor(
-                        ires[ 0+i].getLong(), 
-                        ires[ 4+i].getLong(), 
-                        ires[ 8+i].getLong(), 
-                        ires[12+i].getLong()));
-
-                    // assert equality - T3+xor identity
-                    assertEquals("T3 box should be identity but is not", true, Arrays.equals(cires, ires[i].get()));
-                }
-            }
-        }
-        
-        //
-        // Test whole AES on test vectors
-        //
-        for(i=0; i<AEShelper.AES_TESTVECTORS; i++){
-            State plain  = new State(AEShelper.testVect128_plain[i], true, true);
-            State state  = new State(AEShelper.testVect128_plain[i], true, true);
-            State cipher = new State(AEShelper.testVect128_cipher[i], true, false);
-            
-            AESenc.crypt(state);
-            
-            System.out.println("Testvector index: " + i);
-            System.out.println("=====================");
-            System.out.println("Testvector plaintext: \n" + plain);
-            System.out.println("Testvector ciphertext: \n"+ cipher);
-            System.out.println("Enc(plaintext_test): \n" + state);
-            
-            assertEquals("Cipher output mismatch", true, state.equals(cipher));
-        }
-    }*/
     
     /**
      * Test of generate method, of class Generator.
-     *
+     */
     public void testGenerate() {
         System.out.println("generate");
         Generator gEnc  = new Generator();
@@ -345,32 +239,48 @@ public class GeneratorTest extends TestCase {
         gEnc.setUseMB08x08Identity(false);
         gEnc.setUseMB32x32Identity(false);
         
-        // test with testvectors
+        gDec.setUseIO04x04Identity(false);
+        gDec.setUseIO08x08Identity(false);
+        gDec.setUseMB08x08Identity(false);
+        gDec.setUseMB32x32Identity(false);
+        
+        // Generate AES for encryption
         gEnc.generate(true, AEShelper.testVect128_key, 16, extc);
         AES AESenc = gEnc.getAESi();
-        // Decryption
-        //gEnc.generate(false, AEShelper.testVect128_key, 16, extc);
-        //AES AESdec = gDec.getAESi();
+        // Generate AES for decryption
+        gDec.generate(false, AEShelper.testVect128_key, 16, extc);
+        AES AESdec = gDec.getAESi();
         
         //
         // Test whole AES on test vectors
         //
         for(int i=0; i<AEShelper.AES_TESTVECTORS; i++){
-            State plain  = new State(AEShelper.testVect128_plain[i], true, true);
-            State state  = new State(AEShelper.testVect128_plain[i], true, true);
+            State plain  = new State(AEShelper.testVect128_plain[i], true,  false);
+            State state  = new State(AEShelper.testVect128_plain[i], true,  false);
             State cipher = new State(AEShelper.testVect128_cipher[i], true, false);
-            
-            gEnc.applyExternalEnc(state, extc, true);
-            AESenc.crypt(state);
-            gEnc.applyExternalEnc(state, extc, false);
             
             System.out.println("Testvector index: " + i);
             System.out.println("=====================");
             System.out.println("Testvector plaintext: \n" + plain);
             System.out.println("Testvector ciphertext: \n"+ cipher);
-            System.out.println("Enc(plaintext_test): \n" + state);
             
+            // Encrypt
+            state.transpose();
+            gEnc.applyExternalEnc(state, extc, true);
+            AESenc.crypt(state);
+            gEnc.applyExternalEnc(state, extc, false);
+            
+            System.out.println("Enc(plaintext_test): \n" + state);
             assertEquals("Cipher output mismatch", true, state.equals(cipher));
+            
+            // Decrypt
+            cipher.transpose();
+            System.out.println("T(Enc(plaintext_test)): \n" + state);
+            gDec.applyExternalEnc(cipher, extc, true);
+            AESdec.crypt(cipher);
+            gDec.applyExternalEnc(cipher, extc, false);
+            System.out.println("Dec(T(Enc(plaintext_test))): \n" + cipher);
+            assertEquals("Cipher output mismatch", true, plain.equals(cipher));
         }
-    }   */
+    } 
 }

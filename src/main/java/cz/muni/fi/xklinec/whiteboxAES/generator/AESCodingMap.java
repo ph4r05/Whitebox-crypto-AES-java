@@ -201,4 +201,8 @@ public class AESCodingMap {					      // 15*4*8, used with T1 tables
     public int getIdx() {
         return idx;
     }
+
+    public void setEncrypt(boolean encrypt) {
+        this.encrypt = encrypt;
+    }
 }

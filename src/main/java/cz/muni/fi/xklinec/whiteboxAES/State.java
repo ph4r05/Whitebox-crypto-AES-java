@@ -339,15 +339,30 @@ public class State implements Serializable, Copyable{
     }
     
     /**
-     * Transposes this state
+     * Transposes this state.
+     * Returns this state for fluent interface.
      */
-    public void transpose(){
+    public State transpose(){
         byte[] tmp = new byte[BYTES];
         for(int i=0; i<BYTES; i++){
             tmp[i] = this.getT(i);
         }
         
         this.state = tmp;
+        return this;
+    }
+    
+    /**
+     * Transposes this state.
+     * Returns new state that is transposed copy of this state.
+     */
+    public static State getTranspose(State s){
+        byte[] tmp = new byte[BYTES];
+        for(int i=0; i<BYTES; i++){
+            tmp[i] = s.getT(i);
+        }
+        
+        return new State(tmp);
     }
 
     @Override
