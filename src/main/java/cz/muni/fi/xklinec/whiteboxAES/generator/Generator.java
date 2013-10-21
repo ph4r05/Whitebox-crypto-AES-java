@@ -792,6 +792,8 @@ public class Generator {
      */
     public void generate(boolean encrypt, byte[] key, int keySize, ExternalBijections ex){
         this.initInternal();
+        AESi.setEncrypt(encrypt);
+        
         extc = ex;
         
         System.out.println("AES initialization");
@@ -1067,7 +1069,6 @@ public class Generator {
                         mapResult = iocoding_encode32x32(mapResult, t3C[r][idx].getCod(), false, pCoding04x04, pCoding08x08);
                         // Store result value to lookup table
                         t3[r][idx].getTbl()[posIdx(b)] = mapResult;
-                        // cout << "T3["<<r<<"]["<<i<<"]["<<j<<"]["<<b<<"] = "; dumpW32b(mapResult);
                     }
                 }
             }
@@ -1092,26 +1093,21 @@ public class Generator {
             GF2MatrixEx tmpMat2 = new GF2MatrixEx(128, 1);
             for(int jj=0; jj<16; jj++){
                 NTLUtils.putByteAsColVector(tmpMat2, state.get(jj), jj*8, 0); 
-                //BYTE_to_matGF2(state.B[jj], tmpMat2, jj*8, 0);
             }
 
             tmpMat2 = (GF2MatrixEx) extc.getIODM()[0].getMb().rightMultiply(tmpMat2);
-            //tmpMat2 = extc->IODM[0].mb * tmpMat2;
 
             for(int jj=0; jj<16; jj++){
                 state.set(NTLUtils.colBinaryVectorToByte(tmpMat2, jj*8, 0), jj);
-                //state.B[jj] = matGF2_to_BYTE(tmpMat2, jj*8, 0);
             }
 
             //
             // IO bijection
             //
             for(int jj=0; jj<16; jj++){
-                int tt  = /*State.transpose*/(jj);
-                byte bLO = (byte) (extc.getLfC()[0][2*tt+0].coding[LO(state.get(jj))] & 0xff);
-                byte bHI = (byte) (extc.getLfC()[0][2*tt+1].coding[HI(state.get(jj))] & 0xff);
+                byte bLO = (byte) (extc.getLfC()[0][2*jj+0].coding[LO(state.get(jj))] & 0xff);
+                byte bHI = (byte) (extc.getLfC()[0][2*jj+1].coding[HI(state.get(jj))] & 0xff);
                 state.set((byte) HILO(bHI, bLO), jj);
-                //state.B[jj] = HILO(extc->lfC[0][2*tt+0].coding[HI(state.B[jj])], extc->lfC[0][2*tt+1].coding[LO(state.B[jj])]);
             }
 	} else {
             // Output -> decode bijections

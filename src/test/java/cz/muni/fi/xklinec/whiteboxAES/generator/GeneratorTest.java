@@ -102,7 +102,7 @@ public class GeneratorTest extends TestCase {
 
     /**
      * Test of generate method, of class Generator.
-     *
+     */
     public void testGeneratePlain() {
         System.out.println("generatePlain");
         Generator gEnc  = new Generator();
@@ -119,12 +119,17 @@ public class GeneratorTest extends TestCase {
         gEnc.setUseMB08x08Identity(true);
         gEnc.setUseMB32x32Identity(true);
         
+        gDec.setUseIO04x04Identity(true);
+        gDec.setUseIO08x08Identity(true);
+        gDec.setUseMB08x08Identity(true);
+        gDec.setUseMB32x32Identity(true);
+        
         // test with testvectors
         gEnc.generate(true, AEShelper.testVect128_key, 16, extc);
         AES AESenc = gEnc.getAESi();
         // Decryption
-        //gEnc.generate(false, AEShelper.testVect128_key, 16, extc);
-        //AES AESdec = gDec.getAESi();
+        gDec.generate(false, AEShelper.testVect128_key, 16, extc);
+        AES AESdec = gDec.getAESi();
         
         // Initialize structures for AES testing
         int r, i, t;
@@ -196,15 +201,24 @@ public class GeneratorTest extends TestCase {
             
             AESenc.crypt(state);
             
+            
             System.out.println("Testvector index: " + i);
             System.out.println("=====================");
             System.out.println("Testvector plaintext: \n" + plain);
             System.out.println("Testvector ciphertext: \n"+ cipher);
             System.out.println("Enc(plaintext_test): \n" + state);
-            
             assertEquals("Cipher output mismatch", true, state.equals(cipher));
+            
+            state.transpose();
+            System.out.println("Trans(Enc(plaintext_test)): \n" + state);
+            
+            AESdec.crypt(state);
+            System.out.println("Dec(Enc(plaintext_test)): \n" + state);
+            
+            
+            
         }
-    }*/
+    }
     
     /**
      * Test of generate method, of class Generator.
@@ -314,7 +328,7 @@ public class GeneratorTest extends TestCase {
     
     /**
      * Test of generate method, of class Generator.
-     */
+     *
     public void testGenerate() {
         System.out.println("generate");
         Generator gEnc  = new Generator();
@@ -326,10 +340,10 @@ public class GeneratorTest extends TestCase {
         gEnc.generateExtEncoding(extc, 0);
         
         // at first generate pure table AES implementation
-        gEnc.setUseIO04x04Identity(true);
-        gEnc.setUseIO08x08Identity(true);
-        gEnc.setUseMB08x08Identity(true);
-        gEnc.setUseMB32x32Identity(true);
+        gEnc.setUseIO04x04Identity(false);
+        gEnc.setUseIO08x08Identity(false);
+        gEnc.setUseMB08x08Identity(false);
+        gEnc.setUseMB32x32Identity(false);
         
         // test with testvectors
         gEnc.generate(true, AEShelper.testVect128_key, 16, extc);
@@ -358,5 +372,5 @@ public class GeneratorTest extends TestCase {
             
             assertEquals("Cipher output mismatch", true, state.equals(cipher));
         }
-    }   
+    }   */
 }

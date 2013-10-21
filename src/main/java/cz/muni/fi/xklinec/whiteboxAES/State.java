@@ -337,6 +337,18 @@ public class State implements Serializable, Copyable{
     public void setImmutable(boolean immutable) {
         this.immutable = immutable;
     }
+    
+    /**
+     * Transposes this state
+     */
+    public void transpose(){
+        byte[] tmp = new byte[BYTES];
+        for(int i=0; i<BYTES; i++){
+            tmp[i] = this.getT(i);
+        }
+        
+        this.state = tmp;
+    }
 
     @Override
     public int hashCode() {

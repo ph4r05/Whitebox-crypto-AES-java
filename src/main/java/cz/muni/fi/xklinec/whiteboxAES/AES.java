@@ -43,7 +43,7 @@ public class AES {
     }
     
     public static int posIdx(int x){
-        return x & 0xffffffff;
+        return x & 0xff;
     }
     
     /**
@@ -222,6 +222,14 @@ public class AES {
 
     public XORCascade[][] getXor() {
         return xor;
+    }
+
+    public boolean isEncrypt() {
+        return encrypt;
+    }
+
+    public void setEncrypt(boolean encrypt) {
+        this.encrypt = encrypt;
     }
     
     @Override
