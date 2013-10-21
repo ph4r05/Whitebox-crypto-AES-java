@@ -16,7 +16,9 @@ import java.security.SecureRandom;
 import org.bouncycastle.pqc.math.linearalgebra.GF2mField;
 
 /**
- *
+ * Class generates whitebox AES table representation.
+ * 
+ * AES: http://csrc.nist.gov/publications/fips/fips197/fips-197.pdf
  * @author ph4r05
  */
 public class Generator {
@@ -76,7 +78,6 @@ public class Generator {
         public String toString() {
             return "HL{H=" + H + ", L=" + L + '}';
         }
-        
     }
     
     //
