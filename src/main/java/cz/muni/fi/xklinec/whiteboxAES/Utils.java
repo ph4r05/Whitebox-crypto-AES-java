@@ -54,9 +54,9 @@ public class Utils {
      */
     public static void long2byte(byte[] b, long a){
         b[0] = (byte) ( a        & 0xFF);
-        b[1] = (byte) ((a >> 8)  & 0xFF);
-        b[2] = (byte) ((a >> 16) & 0xFF);
-        b[3] = (byte) ((a >> 24) & 0xFF);
+        b[1] = (byte) ((a >>> 8)  & 0xFF);
+        b[2] = (byte) ((a >>> 16) & 0xFF);
+        b[3] = (byte) ((a >>> 24) & 0xFF);
     }
     
     /**
@@ -76,7 +76,7 @@ public class Utils {
      * LSB in long will be 1st bit in byte[0].
      */
     public static byte long2byte(long a, int idx){
-        return (byte) ((a >> 8*idx)  & 0xFF);
+        return (byte) ((a >>> (8*idx))  & 0xFF);
     }
     
     /**
@@ -86,7 +86,7 @@ public class Utils {
      * LSB in long will be 1st bit in byte[0].
      */
     public static long byte2long(byte a, int idx){
-        return (long) ((long)(a & 0xff) << 8*idx);
+        return (long) ((long)(a & 0xff) << (8*idx));
     }
     
      public static int ceil(double x) {
