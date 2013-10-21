@@ -29,7 +29,7 @@ public class AESCodingMap {					      // 15*4*8, used with T1 tables
     }
     
     public int shiftOp(int idx){
-        return AES.shift(idx, encrypt);
+        return AES.shift(idx, !encrypt);
     }
     
     /**
@@ -111,7 +111,7 @@ public class AESCodingMap {					      // 15*4*8, used with T1 tables
 	// 128-bit XOR has output indexed by rows, same as state.
 	//
 	for(i=0; i<BYTES; i++){
-            int newIdx = AES.shift(i, encrypt);
+            int newIdx = shiftOp(i);
             xorState[0].connectOut(t2[0][newIdx], i);
 	}
         
@@ -139,35 +139,36 @@ public class AESCodingMap {					      // 15*4*8, used with T1 tables
                 //
                 // Connecting part - connecting allocated codings together
                 //
-                final int xorCol1 =              i/State.COLS;
-                final int xorCol2 = State.COLS + i/State.COLS;
+                final int xorCol1 = 2*(i % State.COLS);     //2*(i/State.COLS);
+                final int xorCol2 = 2*(i % State.COLS) + 1; //2*(i/State.COLS) + 1;
+                final int slot    =    i / State.COLS;
                 
                 // Connect T2 boxes to XOR input boxes
-                t2[r][i].connectOut(xor[r][xorCol1], i % State.COLS);
+                t2[r][i].connectOut(xor[r][xorCol1], slot);
                 
                 // XOR boxes, one per column
-                if ((i % State.COLS) == (State.COLS-1)){
+                if ((i / State.COLS) == (State.ROWS-1)){
                     // Connect XOR layer 1 to XOR layer 2
                     xor[r][xorCol1].connectInternal();
                 }
                 
                 // Connect result XOR layer 2 to B boxes (T3)
-                xor[r][xorCol1].connectOut(t3[r][i], i % State.COLS);
+                xor[r][xorCol1].connectOut(t3[r][i], slot);
                 
                 // Connect B boxes to XOR
-                t3[r][i].connectOut(xor[r][xorCol2], i % State.COLS);
+                t3[r][i].connectOut(xor[r][xorCol2], slot);
                 
                 // Connect XOR layer 3 to XOR layer 4
-                if ((i % State.COLS) == (State.COLS-1)){
+                if ((i / State.COLS) == (State.ROWS-1)){
                     xor[r][xorCol2].connectInternal();
                 }
                 
                 if (r<(ROUNDS-2)){
                     // Connect result XOR layer 4 to T2 boxes in next round
-                    xor[r][xorCol2].connectOut(t2[r+1][shiftOp(i)], i % State.COLS);
+                    xor[r][xorCol2].connectOut(t2[r+1][shiftOp(i)], slot);
                 } else {
                     // Connect result XOR layer 4 to T1 boxes in last round; r==8
-                    xor[r][xorCol2].connectOut(t1[1][shiftOp(i)], i % State.COLS);
+                    xor[r][xorCol2].connectOut(t1[1][shiftOp(i)], slot);
                 }
             }
 	}

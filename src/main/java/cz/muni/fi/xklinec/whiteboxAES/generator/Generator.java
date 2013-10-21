@@ -71,6 +71,12 @@ public class Generator {
         public byte type = COD_BITS_UNASSIGNED;   // CODING SIZE TYPE. CURRENTLY DEFINED COD_BITS_4 & COD_BITS_8   
         public int H = NO_CODING;       // HIGH 4-BITS CODING (H == L for COD_BITS_8)
         public int L = NO_CODING;       // LOW 4-BITS CODING
+
+        @Override
+        public String toString() {
+            return "HL{H=" + H + ", L=" + L + '}';
+        }
+        
     }
     
     //
@@ -83,6 +89,11 @@ public class Generator {
         public Coding() {
             IC = new HighLow();
             OC = new HighLow();
+        }
+
+        @Override
+        public String toString() {
+            return "Coding{" + "IC=" + IC + ", OC=" + OC + '}';
         }
     }
 
@@ -128,6 +139,15 @@ public class Generator {
                 this.xtb[i] = new Coding();
             }
         }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            for(int i=0; xtb!=null  && i<width && xtb[i]!=null; i++){
+                sb.append(i).append(':').append(xtb[i]).append(";\n");
+            }
+            return "XORCODING{width=" + width + "; xtb=\n"+sb.toString()+"}";
+        }
     }
     
     //
@@ -151,6 +171,16 @@ public class Generator {
             for(int i=0; i<width; i++){
                 OC[i] = new HighLow(); 
             }
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            for(int i=0; OC!=null  && i<width && OC[i]!=null; i++){
+                sb.append(i).append(':').append(OC[i]).append(";\n");
+            }
+            return "W08xZZCODING{width=" + width + "; IC=" + IC 
+                    + "; OC=\n" + sb.toString() + ";}";
         }
     }
     
@@ -180,7 +210,7 @@ public class Generator {
     }
     
     // Positive modulo
-    public static int POS_MOD(int a, int m){
+    public static int posMod(int a, int m){
         return (((a) % (m)) < 0 ? ((a) % (m)) + (m) : (a) % (m));
     }
     
@@ -295,12 +325,14 @@ public class Generator {
             assrt(cod.OC[(offsetR)+i].H!=NO_CODING && cod.OC[(offsetR)+i].H!=UNASSIGNED_CODING); 
             assrt(cod.OC[(offsetR)+i].L!=NO_CODING && cod.OC[(offsetR)+i].L!=UNASSIGNED_CODING); 
             
+            xtb.xtb[(offsetL)+2*i  ].IC.type = COD_BITS_4;
+            xtb.xtb[(offsetL)+2*i+1].IC.type = COD_BITS_4;
             if (HL){
-                xtb.xtb[(offsetL)+2*i  ].IC.H = cod.OC[(offsetR)+i].H;
-                xtb.xtb[(offsetL)+2*i+1].IC.H = cod.OC[(offsetR)+i].L;
+                xtb.xtb[(offsetL)+2*i  ].IC.H = cod.OC[(offsetR)+i].L;
+                xtb.xtb[(offsetL)+2*i+1].IC.H = cod.OC[(offsetR)+i].H;
             } else {
-                xtb.xtb[(offsetL)+2*i  ].IC.L = cod.OC[(offsetR)+i].H;
-                xtb.xtb[(offsetL)+2*i+1].IC.L = cod.OC[(offsetR)+i].L;
+                xtb.xtb[(offsetL)+2*i  ].IC.L = cod.OC[(offsetR)+i].L;
+                xtb.xtb[(offsetL)+2*i+1].IC.L = cod.OC[(offsetR)+i].H;
             }
         }
     }
@@ -344,6 +376,7 @@ public class Generator {
             // To avoid assigning empty encodings.
             assrt(xtb1.xtb[(offset1) + i].OC.L != NO_CODING && xtb1.xtb[(offset1) + i].OC.L != UNASSIGNED_CODING);
 
+            xtb3.xtb[(offset3) + i].IC.type = COD_BITS_4;
             if (HL) {
                 xtb3.xtb[(offset3) + i].IC.H = xtb1.xtb[(offset1) + i].OC.L;
             } else {
@@ -391,8 +424,9 @@ public class Generator {
         assrt(cod.IC.L==NO_CODING);
         assrt(xtb.xtb[(offset)+1].OC.L!=UNASSIGNED_CODING && xtb.xtb[(offset)+1].OC.L!=NO_CODING); 
 
-        cod.IC.H = xtb.xtb[(offset)+0].OC.L;                                          
-        cod.IC.L = xtb.xtb[(offset)+1].OC.L;                                          
+        cod.IC.type = COD_BITS_4;
+        cod.IC.L = xtb.xtb[(offset)+0].OC.L;                                          
+        cod.IC.H = xtb.xtb[(offset)+1].OC.L;                                          
     }
     
     /**
@@ -538,7 +572,7 @@ public class Generator {
             }
         }
 
-	       // Generate all required 32x32 mixing bijections.
+	// Generate all required 32x32 mixing bijections.
         for (r = 0; r < MB32x32rounds; r++) {
             for (i = 0; i < MB_CNT_32x32_PER_ROUND; i++) {
                 if (!MB32x32Identity) {
@@ -571,7 +605,7 @@ public class Generator {
                     // HINT: if you are debugging IO problems, try to turn on and off some bijections,
                     // you can very easily localize the problem.
 
-                    //if (i>=3) identity=true;
+                    //if (i>=2988) identity=true;
                     c |= generate4X4Bijection(tbl[i], identity);
             }
 
@@ -1038,6 +1072,78 @@ public class Generator {
                 }
             }
         }
+    }
+    
+    /**
+     * Applies external encoding to state - simulates environment.
+     * @param state
+     * @param extc
+     * @param input 
+     */
+    public void applyExternalEnc(State state, ExternalBijections extc, boolean input){
+	assrt(extc!=null);
+	if (input){
+            // If input -> at first apply linear transformation 128 x 128, then bijection
+            // Now we use output encoding G and quit, no MixColumn or Mixing bijections here.
+
+            //
+            // Mixing bijection 128x128
+            //
+            GF2MatrixEx tmpMat2 = new GF2MatrixEx(128, 1);
+            for(int jj=0; jj<16; jj++){
+                NTLUtils.putByteAsColVector(tmpMat2, state.get(jj), jj*8, 0); 
+                //BYTE_to_matGF2(state.B[jj], tmpMat2, jj*8, 0);
+            }
+
+            tmpMat2 = (GF2MatrixEx) extc.getIODM()[0].getMb().rightMultiply(tmpMat2);
+            //tmpMat2 = extc->IODM[0].mb * tmpMat2;
+
+            for(int jj=0; jj<16; jj++){
+                state.set(NTLUtils.colBinaryVectorToByte(tmpMat2, jj*8, 0), jj);
+                //state.B[jj] = matGF2_to_BYTE(tmpMat2, jj*8, 0);
+            }
+
+            //
+            // IO bijection
+            //
+            for(int jj=0; jj<16; jj++){
+                int tt  = State.transpose(jj);
+                byte bb1 = (byte) (extc.getLfC()[0][2*tt+0].coding[HI(state.get(jj))] & 0xff);
+                byte bb2 = (byte) (extc.getLfC()[0][2*tt+1].coding[LO(state.get(jj))] & 0xff);
+                state.set((byte) HILO(bb1, bb2), jj);
+                //state.B[jj] = HILO(extc->lfC[0][2*tt+0].coding[HI(state.B[jj])], extc->lfC[0][2*tt+1].coding[LO(state.B[jj])]);
+            }
+	} else {
+            // Output -> decode bijections
+
+            //
+            // IO bijection
+            //
+            for(int jj=0; jj<16; jj++){
+                int tt = State.transpose(jj);
+                byte bb1 = (byte) (extc.getLfC()[0][2*tt+0].invCoding[HI(state.get(jj))] & 0xff);
+                byte bb2 = (byte) (extc.getLfC()[0][2*tt+1].invCoding[LO(state.get(jj))] & 0xff);
+                state.set((byte) HILO(bb1, bb2), jj);
+                //state.B[jj] = HILO(extc->lfC[1][2*tt+0].invCoding[HI(state.B[jj])], extc->lfC[1][2*tt+1].invCoding[LO(state.B[jj])]);
+            }
+
+            //
+            // Mixing bijection 128x128
+            //
+            GF2MatrixEx tmpMat2 = new GF2MatrixEx(128, 1);
+            for(int jj=0; jj<16; jj++){
+                NTLUtils.putByteAsColVector(tmpMat2, state.get(jj), State.transpose(jj*8), 0); 
+                //BYTE_to_matGF2(state.B[jj], tmpMat2, idxTranspose(jj)*8, 0);
+            }
+            
+            tmpMat2 = (GF2MatrixEx) extc.getIODM()[1].getInv().rightMultiply(tmpMat2);
+            //tmpMat2 = extc->IODM[1].inv * tmpMat2;
+
+            for(int jj=0; jj<16; jj++){
+                state.set(NTLUtils.colBinaryVectorToByte(tmpMat2, State.transpose(jj)*8, 0), jj);
+                //state.B[jj] = matGF2_to_BYTE(tmpMat2, idxTranspose(jj)*8, 0);
+            }
+	}
     }
     
     public String chex(int l){
