@@ -119,8 +119,8 @@ public class AEShelper {
 	}
         
         GF2MatrixEx tmpM = new GF2MatrixEx(8, 1);
-        GF2MatrixEx afM  = getDefaultAffineMatrix(encrypt);
-        byte        afC  = getDefaultAffineConstByte(encrypt);
+        GF2MatrixEx afM  = getDefaultAffineMatrix(true);
+        byte        afC  = getDefaultAffineConstByte(true);
         
         
         // Computing whole Sboxes with inversion + affine transformation in generic AES
