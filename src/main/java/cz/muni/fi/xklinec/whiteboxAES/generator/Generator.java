@@ -705,7 +705,7 @@ public class Generator {
                 mapResult.zero();
 
                 // Decode with IO encoding
-                bb = HILO(lfC[0][2 * i + 0].invCoding[HI((byte)b)], lfC[0][2 * i + 1].invCoding[LO((byte)b)]) & 0xff;
+                bb = HILO(lfC[0][2 * i + 1].invCoding[HI((byte)b)], lfC[0][2 * i + 0].invCoding[LO((byte)b)]) & 0xff;
                 // Transform bb to matrix, to perform mixing bijection operation (matrix multiplication)
                 GF2MatrixEx tmpMat = new GF2MatrixEx(128, 1);
                 // builds binary matrix [0 0 bb 0 0 0 0 0 0 0 0 0 0 0 0 0]^T, if i==2;
@@ -1108,9 +1108,9 @@ public class Generator {
             //
             for(int jj=0; jj<16; jj++){
                 int tt  = /*State.transpose*/(jj);
-                byte bb1 = (byte) (extc.getLfC()[0][2*tt+0].coding[HI(state.get(jj))] & 0xff);
-                byte bb2 = (byte) (extc.getLfC()[0][2*tt+1].coding[LO(state.get(jj))] & 0xff);
-                state.set((byte) HILO(bb1, bb2), jj);
+                byte bLO = (byte) (extc.getLfC()[0][2*tt+0].coding[LO(state.get(jj))] & 0xff);
+                byte bHI = (byte) (extc.getLfC()[0][2*tt+1].coding[HI(state.get(jj))] & 0xff);
+                state.set((byte) HILO(bHI, bLO), jj);
                 //state.B[jj] = HILO(extc->lfC[0][2*tt+0].coding[HI(state.B[jj])], extc->lfC[0][2*tt+1].coding[LO(state.B[jj])]);
             }
 	} else {
