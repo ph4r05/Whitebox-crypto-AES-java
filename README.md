@@ -7,8 +7,11 @@ This repository contains a Java implementation of a complete whitebox [AES]-128 
 
 Implementation code contains pure Java implementation of the Chow's whitebox AES scheme instance generator and instance emulator. Generated instance can be serialized. 
 
+You also might be interested in my [C++] implementation of the Chow's generator & emulator. It also contains implementation of Karroumi whitebox scheme and Billet et al. key recovery attack (not implemented in Java version).
+
 [AES]: http://csrc.nist.gov/archive/aes/rijndael/Rijndael-ammended.pdf
 [Chow]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.59.7710
+[C++]: https://github.com/ph4r05/Whitebox-crypto-AES/
 
 Dependencies
 =======
