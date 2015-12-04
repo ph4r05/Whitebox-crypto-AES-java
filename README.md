@@ -1,6 +1,8 @@
 Whitebox-crypto-AES-java
 ========================
 
+[![Build Status](https://travis-ci.org/ph4r05/Whitebox-crypto-AES-java.svg?branch=master)](https://travis-ci.org/ph4r05/Whitebox-crypto-AES-java)
+
 Whitebox cryptography AES implementation.
 
 This repository contains a Java implementation of a complete whitebox [AES]-128 scheme introduced by [Chow] et al. It implements/uses input/output encodings, mixing bijections, external encodings.
