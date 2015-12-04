@@ -1,0 +1,18 @@
+language: java
+script: mvn -DskipTests=true compile
+
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+   - secure: "VQfsvHlIvRvjU+GGwgp0bnT9Baw/EvJ3e6YkRjzjqhax4M1dkCChh+dbDZ7WdsBQzwWBvV8Y0iZ8k4DdDD676A7pNZCRl2e3EzgUt/8gagLnVjKpVmB+xMA89L4739iF5OMRq8esGf/f4Zy183SMYFM1Ft1CrmsLCEsCmMZD7M998dsiZK7ZvSCQTQWg5xZgwoJSd8z4/wPNxlbSUQq57U26Q0tS0yOhiPnAkuyKTqAEZf6rBXoK14eelCxP09yrz6yVUawgscHB0LSpQyTDtXboG4T6pFYlVvmX/0fKRcQH+l5gL8ietWKeT5ZEn3aeoAKxbVjM2r7vEyCjrFcZEdhmSdgWD+LsuqiW8KOVI0ajqme5PNoAxWLYqL50gJrVKbxdgCakBQ8WKoxJHTFlKQegdwGvyYMGNYuUxyqYXQSuJB1Nqb97/5hl7YWBhfCrKbLi7DgejCDNLGEWr03ulwIxSL+jMqzcnI0QCufNRznsDFxWXNt29cDOw+xB3uPJeclcOiWhSOetRapf3CWD6sxOfrnRnjyq5i99veFrI0Ol+m6Ky/fbeuaoxeF9CgqyuTGF/D01bvAZxcDLJfFFJh7tLqykOrXxqMAlzzMwYlissyFXlW66vF52avkOulUz9I48N1ptpyyoruQhkUNrZheJ6i+CJTkhN1uhmRCCpXQ="
+
+addons:
+  coverity_scan:
+    project:
+      name: "ph4r05/Whitebox-crypto-AES-java"
+      description: "Build submitted via Travis CI"
+    notification_email: ph4r05@gmail.com
+    build_command_prepend: "mvn clean"
+    build_command:   "mvn -DskipTests=true compile"
+    branch_pattern: coverity_scan
