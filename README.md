@@ -27,6 +27,14 @@ License
 =======
 Code is licensed under new BSD license. For further details see LICENSE file.
 
+Donations
+=========
+
+Thank you for all your support!
+
+Monero:
+47BEukN83whUdvuXbaWmDDQLYNUpLsvFR2jioQtpP5vD8b3o74b9oFgQ3KFa3ibjbwBsaJEehogjiUCfGtugUGAuJAfbh1Z
+
 Contributing
 =======
 If you would like to improve my code by extending it to AES-256 or implementing other whitebox AES schemes do not hesitate to submit a pull request. Please also consider it if you find some bug in the code. I am not actively developing this code at the moment but I will review the pull requests. Thanks!
