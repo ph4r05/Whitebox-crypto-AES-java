@@ -27,13 +27,6 @@ License
 =======
 Code is licensed under new BSD license. For further details see LICENSE file.
 
-Donations
-=========
-
-Thank you for all your support!
-
-Monero:
-47BEukN83whUdvuXbaWmDDQLYNUpLsvFR2jioQtpP5vD8b3o74b9oFgQ3KFa3ibjbwBsaJEehogjiUCfGtugUGAuJAfbh1Z
 
 Contributing
 =======
@@ -52,3 +45,9 @@ And if you don't feel like donating, that's OK too.
 Bitcoin:
 
 ![1342dgQqohM9PMLof7RaFK51B5tCiMW2sp](https://deadcode.me/btc-whitebox-java.png)<br />1342dgQqohM9PMLof7RaFK51B5tCiMW2sp
+
+Monero:
+47BEukN83whUdvuXbaWmDDQLYNUpLsvFR2jioQtpP5vD8b3o74b9oFgQ3KFa3ibjbwBsaJEehogjiUCfGtugUGAuJAfbh1Z
+
+
+
