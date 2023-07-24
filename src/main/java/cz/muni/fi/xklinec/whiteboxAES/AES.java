@@ -28,6 +28,7 @@
  */
 package cz.muni.fi.xklinec.whiteboxAES;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
@@ -35,7 +36,10 @@ import java.util.Arrays;
  * 
  * @author ph4r05
  */
-public class AES {
+public class AES implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     public static final int BYTES  = State.BYTES;
     public static final int ROUNDS = 10;
     public static final int T1BOXES = 2;
